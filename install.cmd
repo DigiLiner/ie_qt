@@ -1,0 +1,1 @@
+pyinstaller --add-data "svgicons:svgicons" --add-data "pngicons:pngicons"  mainqt.py  --windowed  --exclude PyQt6 --onefile

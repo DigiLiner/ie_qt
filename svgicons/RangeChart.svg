@@ -1,0 +1,24 @@
+﻿<?xml version='1.0' encoding='UTF-8'?>
+<svg viewBox="-6 0 32 32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g id="Layer_1" transform="translate(2, 16) rotate(270, 2, -10)" style="enable-background:new 0 0 32 32">
+    <g transform="matrix(1, 0, 0, -1, 0, 12) matrix(-1, 0, 0, 1, 8, 0)">
+      <g id="BarChart">
+        <rect x="2" y="16" width="8" height="12" rx="0" ry="0" fill="#FFB115" class="Yellow" />
+      </g>
+    </g>
+  </g>
+  <g id="Layer_1" transform="translate(15, 17) rotate(270, -8, -1)" style="enable-background:new 0 0 32 32">
+    <g transform="matrix(1, 0, 0, -1, 0, 18) matrix(-1, 0, 0, 1, 8, 0)">
+      <g id="BarChart">
+        <rect x="12" y="10" width="8" height="18" rx="0" ry="0" fill="#1177D7" class="Blue" />
+      </g>
+    </g>
+  </g>
+  <g id="Layer_1" transform="translate(28, 18) rotate(270, -18, 8)" style="enable-background:new 0 0 32 32">
+    <g transform="matrix(1, 0, 0, -1, 0, 24) matrix(-1, 0, 0, 1, 8, 0)">
+      <g id="BarChart">
+        <rect x="22" y="4" width="8" height="24" rx="0" ry="0" fill="#D11C1C" class="Red" />
+      </g>
+    </g>
+  </g>
+</svg>

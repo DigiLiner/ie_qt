@@ -1,0 +1,4 @@
+pyinstaller --add-data "toolbar_images:toolbar_images"  mainwx.py  --windowed
+pyinstaller --add-data "toolbar_images:toolbar_images"  mainwx.py  --windowed  --onefile
+pyinstaller --add-data "svgicons:svgicons" --add-data "pngicons:pngicons"  mainqt.py  --windowed  --exclude PyQt6 --onefile
+

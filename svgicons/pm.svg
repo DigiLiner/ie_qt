@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" style="stroke-miterlimit: 9; fill: rgb(255, 255, 255);"/>
+  <text transform="matrix(7.411819, 0, 0, 7.838647, -165.947067, -382.578339)" x="23.726" y="60.632" style="fill: rgb(86, 148, 107);">P</text>
+  <text transform="matrix(1.96633, 0, 0, 1.744736, -89.968391, -4.607873)" style="fill: rgb(173, 50, 50); font-size: 21.2674px;" x="62.175" y="53.004">M</text>
+  <path style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" d="M 18.179 31.947"/>
+</svg>
