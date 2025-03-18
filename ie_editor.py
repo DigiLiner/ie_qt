@@ -3,22 +3,254 @@ import os
 import sys
 
 import PySide6
-from PySide6 import QtWidgets, QtCore
-from PySide6.QtCore import QPoint
+from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6.QtCore import QPoint, QPointF
 from PySide6.QtGui import QPen, QColor, QBrush, Qt, QImage, QPainter, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QLabel, QHBoxLayout, QScrollArea, \
-    QGridLayout
+    QGridLayout, QWidget
 from PySide6.QtWidgets import QFrame
-import ie_functions
+import ie_tools
+import draw_window_ui
 import ie_globals
-from main_ui import Ui_MainWindow
-class IEditor(QFrame()):
-    def __init__(self, image_path):
+
+class Editor(draw_window_ui.Ui_Form, QWidget):
+    def __init__(self, image_path: str, /) -> None:
+        super().__init__()
+
+        self.setupUi(self)  # Ensure the UI is set up
         self.image_path = image_path
         # You can add more initialization code here
-        self.scrollarea = QScrollArea()
-        scrollareacontent = QtWidgets.QWidget()
-        gridLayout = QGridLayout(scrollareacontent)
-        widgetPicture = QFrame(scrollareacontent)
+     
+        w=ie_globals.image_width
+        h=ie_globals.image_height
+ 
+        self.widgetPicture1.setFixedSize(w , h )
+        self.widgetPicture1.image = PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64)
+        self.pic1 = self.widgetPicture1.image
+        self.pic1.fill(QColor(255, 0, 255))
 
 
+        self.pic2 = PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64)
+        self.picOrg = PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64)
+        self.widgetPicture1.setMouseTracking(True)
+        self.widgetPicture1.mousePressEvent = self.pic1_mousePressEvent
+        self.widgetPicture1.mouseMoveEvent = self.pic1_mouseMoveEvent
+        self.widgetPicture1.mouseReleaseEvent = self.pic1_mouseReleaseEvent
+        self.widgetPicture1.paintEvent = self.pic1_paintEvent
+        self.widgetPicture1.wheelEvent = self.pic1_mouseWheelEvent
+        # self.widgetPicture1.setFixedSize(400, 300)
+        self.widgetPicture1.show()
+        self.widgetPicture1.setAttribute(Qt.WidgetAttribute.WA_SetStyle, True)
+
+
+        self.undoList : list = []
+        self.undo_index = -1
+        self.startPos = QPoint(0, 0)
+        self.lastPos = QPoint(0, 0)
+        self.docStartPos = QPoint(0, 0)
+        self.zoomFactor = 1.0
+        self.undo_index=-1
+
+    def pic1_mouseWheelEvent(self, event: QtGui.QWheelEvent) -> None:
+        # Scroll değerleri
+        hbar = self.scrollArea.horizontalScrollBar()
+        vbar = self.scrollArea.verticalScrollBar()
+        
+        # Farenin viewport içindeki koordinatları
+        viewport_pos = event.position()
+        
+        # Farenin widget içindeki gerçek konumu
+        widget_pos_x = viewport_pos.x() + hbar.value()
+        widget_pos_y = viewport_pos.y() + vbar.value()
+        
+        # Orijinal resmin gerçek pozisyonu
+        img_pos_x = widget_pos_x / self.zoomFactor
+        img_pos_y = widget_pos_y / self.zoomFactor
+        
+        # Eski zoom değeri kaydet
+        old_zoom = self.zoomFactor
+        
+        # Yeni zoom faktörünü hesapla
+        if event.angleDelta().y() > 0:
+            self.zoomFactor *= ie_globals.zoomInFactor
+        else:
+            self.zoomFactor *= ie_globals.zoomOutFactor
+        
+        # Limite göre sınırla
+        self.zoomFactor = max(0.1, min(10.0, self.zoomFactor))
+
+        # Önce widget boyutlarını güncelle
+        self.pic1_update()
+
+        # Yeni widget pozisyonunu hesapla ve scroll barları ayarla
+        new_widget_pos_x = img_pos_x * self.zoomFactor
+        new_widget_pos_y = img_pos_y * self.zoomFactor
+        
+        # Scroll pozisyonlarını ayarla - fare konumu sabit kalacak şekilde
+        new_scroll_x = new_widget_pos_x - viewport_pos.x()
+        new_scroll_y = new_widget_pos_y - viewport_pos.y()
+        
+        # ScrollBar değerlerini ayarla
+        hbar.setValue(int(new_scroll_x))
+        vbar.setValue(int(new_scroll_y))
+    #region mouse press [rgba(255, 255, 121,0.3)]
+    def pic1_mousePressEvent(self, event: QMouseEvent) -> None:
+        # print mouse position
+        #print  (event.pos())
+        # if left mouse button is pressed
+        if event.button() == Qt.MouseButton.LeftButton:
+            # make drawing flag true
+            eventstr="down"
+            self.pic2 = self.picOrg.copy()
+
+            # make last point to the point of cursor
+            self.lastPos = event.pos()
+            self.startPos = event.pos()
+            virtualStartPos: QPoint = QPoint(
+                math.trunc(self.startPos.x() / self.zoomFactor),
+                math.trunc(self.startPos.y() / self.zoomFactor))
+            if ie_globals.current_tool == 'pen':
+                    ie_tools.draw_line(self.picOrg,  virtualStartPos, virtualStartPos, eventstr)
+                    self.startPos = event.pos()
+            elif ie_globals.current_tool == 'fill':
+                ie_tools.fill(img1=self.picOrg, pt1= virtualStartPos,task="down")
+            elif ie_globals.current_tool == 'wand':
+                ie_tools.select_wand(img1=self.picOrg, pt1= virtualStartPos,task="down")
+            elif ie_globals.current_tool == 'eraser':
+                ie_tools.erase(self.picOrg, pt1= virtualStartPos, task="down")
+            
+            self.pic1_update()
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            ie_globals.current_tool='pan'
+            self.startPos = event.globalPos()
+            self.docStartPos = self.widgetPicture1.pos()
+
+#endregion
+#region mouse move [rgba(255, 152, 121,0.3)]
+    def pic1_mouseMoveEvent(self, event: QMouseEvent) -> None:
+        eventstr: str = "move"
+
+        if event.buttons() == Qt.MouseButton.LeftButton :
+            virtualStartPos: QPoint = QPoint(
+                math.trunc(self.startPos.x() / self.zoomFactor),
+                math.trunc(self.startPos.y() / self.zoomFactor)
+            )
+            virtualpos: QPoint = QPoint(
+                math.trunc(event.pos().x() / self.zoomFactor),
+                math.trunc(event.pos().y() / self.zoomFactor)
+            )
+            ie_globals.statusText[1]= "Mouse Position: " + str(virtualpos.x()) + ", " + str(virtualpos.y())
+           
+            if ie_globals.current_tool == 'pen':
+                ie_globals.pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                ie_globals.pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                ie_tools.draw_line(self.picOrg,  virtualStartPos, virtualpos, eventstr)
+                self.startPos = event.pos()
+
+            elif ie_globals.current_tool == 'line':
+                self.picOrg=self.pic2.copy()
+                ie_tools.draw_line(self.picOrg, virtualStartPos, virtualpos, eventstr)
+            elif ie_globals.current_tool == 'circle':
+                self.picOrg = self.pic2.copy()
+                ie_tools.draw_circle(self.picOrg, virtualStartPos, virtualpos, eventstr)
+            elif ie_globals.current_tool == 'rect':
+                self.picOrg = self.pic2.copy()
+                ie_tools.draw_rect(self.picOrg, virtualStartPos, virtualpos, eventstr)
+            elif ie_globals.current_tool == 'spray':
+                ie_tools.draw_spray(self.picOrg, virtualpos,eventstr)
+            elif ie_globals.current_tool == 'pan':
+                # deltaX = event.x() - self.startPos.x()
+                # deltaY = event.y() - self.startPos.y()
+                # self.widgetPicture1.move(self.widgetPicture1.x() + deltaX, self.widgetPicture1.y() + deltaY)
+                # self.startPos = event.pos()
+                pass
+            self.lastPos = event.pos()
+            # update
+            self.pic1_update()
+
+        elif event.buttons() == Qt.MouseButton.MiddleButton:
+            deltaX = event.globalPos().x() - self.startPos.x()
+            deltaY = event.globalPos().y() - self.startPos.y()
+            #self.widgetPicture1.move(self.docStartPos.x() + deltaX, self.docStartPos.y() + deltaY)
+            self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().value() - deltaY)
+            self.scrollArea.horizontalScrollBar().setValue(self.scrollArea.horizontalScrollBar().value() - deltaX)
+            self.startPos = event.globalPos()
+
+#endregion
+    def pic1_mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        eventstr: str = "up"
+        if event.button() == Qt.MouseButton.LeftButton:
+            # if self.undo_index < len(self.undoList) - 1:
+            #     del self.undoList[self.undo_index + 1:] 
+            
+            self.undoList.append (self.picOrg.copy())
+            self.undo_index = len(self.undoList) - 1
+            #print(self.undo_index, len(self.undoList))
+        elif event.button() == Qt.MouseButton.MiddleButton:
+            if ie_globals.current_tool == 'pan':
+                ie_globals.current_tool='pen'
+
+    def undoImage(self) -> None:
+        
+        if self.undo_index > -1:
+            self.undo_index -= 1
+            self.drawUndoImage()
+        #print("undo index", self.undo_index, len(self.undoList))
+
+
+    def redoImage(self) -> None:
+
+        if self.undo_index < len(self.undoList) - 1:
+            self.undo_index += 1
+            self.drawUndoImage()
+        #print("undo index", self.undo_index, len(self.undoList))
+
+    def drawUndoImage(self) -> None:
+        
+        self.picOrg = self.undoList[self.undo_index].copy()
+        self.pic1_update()
+
+
+   #region paint [rgba(125, 152, 200,0.1)]
+    #picture 1 view update from original image
+    def pic1_update(self) -> None:
+        ie_globals.statusText[2] = "Zoom: " + str(self.zoomFactor)
+        w=self.picOrg.width()*self.zoomFactor
+        h=self.picOrg.height()*self.zoomFactor
+        self.widgetPicture1.setFixedSize(w, h)
+
+        #self.pic1 = self.picOrg.scaled(w, h,Qt.AspectRatioMode.KeepAspectRatio)
+
+        #self.widgetPicture1.image=self.pic1
+
+        self.scrollArea.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        self.scrollArea.minimumWidth= w
+        self.scrollArea.minimumHeight= h
+        self.scrollArea.width =w
+        self.scrollArea.height =h
+        self.scrollArea.update()
+
+        
+        self.widgetPicture1.update() #call paint event
+    # paint event
+    def pic1_paintEvent(self, event: QtGui.QPaintEvent) -> None:
+        # create a canvas
+        canvasPainter = QPainter(self.widgetPicture1)
+        #print(self.widgetPicture1.size(),self.picOrg.size(),event.rect().size())
+        # draw rectangle  on the canvas
+        w=self.widgetPicture1.width()
+        h=self.widgetPicture1.height()
+        # Assuming self.picOrg is a QImage object
+        pixmap = QPixmap.fromImage(self.picOrg)
+        #draw scaled pixmap on canvas in event rect
+        canvasPainter.drawPixmap(self.widgetPicture1.rect(), pixmap, pixmap.rect())
+
+
+
+        #canvasPainter.drawPixmap(0, 0, pixmap, 0, 0,500,500)
+        # pix_size = event.rect().size()
+        # pix_size.scale(self.widgetPicture1.size(), Qt.AspectRatioMode.KeepAspectRatio)
+        # scaledPix: QPixmap= pixmap.scaled(pix_size,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation )
+        # canvasPainter.drawPixmap(event.rect(),scaledPix, scaledPix.rect())
+
+        canvasPainter.end()

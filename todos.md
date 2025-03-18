@@ -1,5 +1,61 @@
 
 #todo : 
+
+Zoom 
+  Mouse tekerleğine zoom bağla gitsin
+
+Pan
+  orta butonla pan moduna girsin
+  move ile slider değeri değişsin
+  butonu bırakınca öyle kalsın
+Fikir: Renklerde Cyclic özelliği eklenebilir. Spray güzel durur
+Fikir: Ayna ile çizim
+Şekiller , yıldız, üçgen , yuvarlak  dikdörtgen, ay, elips,ok falan
+curve , eğriler
+select tools
+move tools
+rotate tools
+png brush
+Fix:
+  dikdörtgen, daire renk ve dolguları uyumsuz
+  pen line cap falan
+
+
+Next : 
+- [X] Fix Color Palette position
+- [ ] Correct slider values
+
+
+dark mode
+
+Renk kutusu absuttrik
+Filtre için kutu yapılacak
+Filtreler ile effektler ayrı menülere konabilir
+Mouse hareketi ile araçların yanına açıklama , koordinat gibi detaylar
+Zoom ortalamıyor
+Silgi yapılacak
+Copy-paste
+Mark - move - selection
+Spray güzel değil
+Alpha kanalı ne olacak
+Layer mümkün olabilir belki
+Statusbar yapılacak
+Rotate yapılacak
+Mirror - Bekli
+Resim şifreleme gelişebilir
+Print
+Splash about gelişmeli
+Dockpanel daha sonra silinebilir
+Şablon - stencil eklenebilir
+Resmin etrafına Cetvel 
+Resim bilgileri
+Histogram
+RGB ayarı
+Blend
+Pen köşeli çiziyor
+
+
+
 # FUNCTIONALITIES
 - [x] basic drawing functionality -ok
 - [ ] undo/redo functionality 

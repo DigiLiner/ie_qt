@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="toolbar">
+    <file>svgicons/gradient.svg</file>
+    <file>svgicons/lasso_select.svg</file>
     <file>svgicons/Add.svg</file>
     <file>svgicons/Aerosal can-WF.svg</file>
     <file>svgicons/automatic.svg</file>

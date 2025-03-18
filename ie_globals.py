@@ -30,35 +30,28 @@ pen_join = "round"
 brush_color = "blue"
 #Brush blur radius
 brush_blur:int = 2
-#radius of circle for spray tool
+# radius of circle for spray tool
 spray_radius = 50
 #density of spray tool
 spray_density = 100
-#Start position of mouse
-startPos:PySide6.QtCore.QPoint
-#End position of mouse
-lastPos:PySide6.QtCore.QPoint
-#Zoom of canvas
-zoom = 1
-#Zoom factor for zoom in/out
-zoomFactor=2
+
+#Zoom factor for zoom in/ou
+zoomInFactor:float = 1.25
+zoomOutFactor:float= 1/1.25
+
 #Image width of original canvas
-image_width =400
+image_width:int =1000
 #Image height of original canvas
-image_height = 300
+image_height:int = 800
 #image background color
 image_bg_color = "white"
 #flag for zooming true/false
-zooming = False
+zooming:bool = False
 #tool icon size
 tool_icon_size = "24px"
-#flag for erasing true/false
-erasing = False
-#flag for drawing true/false
-drawing = False
-counter = 0
-undo_index = -1
-
+#file name counter
+filenamecounter = 1
+statusText=["Tool:","Pos:","Zoom:"]
 pen.setColor(PySide6.QtGui.QColor(pen_color))
 pen.setWidth(pen_width)
 pen.setCapStyle(PySide6.QtCore.Qt.PenCapStyle.RoundCap)
@@ -67,4 +60,4 @@ pen.setStyle(PySide6.QtCore.Qt.PenStyle.SolidLine)
 pen.setCosmetic(True)
 
 brush.setColor(PySide6.QtGui.QColor(brush_color))
-brush.setStyle(PySide6.QtCore.Qt.BrushStyle.SolidPattern)
+brush.setStyle(PySide6.QtCore.Qt.BrushStyle.NoBrush)

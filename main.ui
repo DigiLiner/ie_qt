@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>933</width>
-    <height>573</height>
+    <width>934</width>
+    <height>781</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -48,8 +48,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>527</width>
-             <height>274</height>
+             <width>528</width>
+             <height>482</height>
             </rect>
            </property>
            <property name="sizePolicy">
@@ -108,7 +108,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>933</width>
+     <width>934</width>
      <height>33</height>
     </rect>
    </property>
@@ -213,7 +213,7 @@
        <x>0</x>
        <y>20</y>
        <width>2462</width>
-       <height>302</height>
+       <height>452</height>
       </rect>
      </property>
      <layout class="QFormLayout" name="formLayout">
@@ -524,29 +524,6 @@
         </property>
        </widget>
       </item>
-      <item row="7" column="0">
-       <widget class="QToolButton" name="toolButtonChecker">
-        <property name="text">
-         <string>...</string>
-        </property>
-        <property name="icon">
-         <iconset resource="svgicons.qrc">
-          <normaloff>:/checker/checker20.png</normaloff>:/checker/checker20.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>24</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
       <item row="7" column="1">
        <widget class="QToolButton" name="toolButtonZoomIn">
         <property name="text">
@@ -554,28 +531,6 @@
         </property>
         <property name="icon">
          <iconset theme="QIcon::ThemeIcon::ZoomIn"/>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>24</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="checkable">
-         <bool>false</bool>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="0">
-       <widget class="QToolButton" name="toolButtonZoomOut">
-        <property name="text">
-         <string>...</string>
-        </property>
-        <property name="icon">
-         <iconset theme="QIcon::ThemeIcon::ZoomOut"/>
         </property>
         <property name="iconSize">
          <size>
@@ -613,14 +568,14 @@
         </property>
        </widget>
       </item>
-      <item row="9" column="0">
-       <widget class="QToolButton" name="toolButtonChecker_5">
+      <item row="9" column="1">
+       <widget class="QToolButton" name="toolButtonFlipHorizontal">
         <property name="text">
          <string>...</string>
         </property>
         <property name="icon">
          <iconset resource="svgicons.qrc">
-          <normaloff>:/checker/checker20.png</normaloff>:/checker/checker20.png</iconset>
+          <normaloff>:/toolbar/svgicons/flip-horizontal-2.svg</normaloff>:/toolbar/svgicons/flip-horizontal-2.svg</iconset>
         </property>
         <property name="iconSize">
          <size>
@@ -636,14 +591,220 @@
         </property>
        </widget>
       </item>
-      <item row="9" column="1">
-       <widget class="QToolButton" name="toolButtonChecker_6">
+      <item row="10" column="1">
+       <widget class="QToolButton" name="toolButtonPan">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/pan-gray.svg</normaloff>:/toolbar/svgicons/pan-gray.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="1">
+       <widget class="QToolButton" name="toolButtonChecker_10">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/stop.svg</normaloff>:/toolbar/svgicons/stop.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="1">
+       <widget class="QToolButton" name="toolButtonChecker_11">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/stop.svg</normaloff>:/toolbar/svgicons/stop.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="0">
+       <widget class="QToolButton" name="toolButtonChecker_13">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/stop.svg</normaloff>:/toolbar/svgicons/stop.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="13" column="1">
+       <widget class="QToolButton" name="toolButtonChecker_14">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/stop.svg</normaloff>:/toolbar/svgicons/stop.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="14" column="0">
+       <widget class="QToolButton" name="toolButtonChecker">
         <property name="text">
          <string>...</string>
         </property>
         <property name="icon">
          <iconset resource="svgicons.qrc">
           <normaloff>:/checker/checker20.png</normaloff>:/checker/checker20.png</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QToolButton" name="toolButtonZoomOut">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset theme="QIcon::ThemeIcon::ZoomOut"/>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="0">
+       <widget class="QToolButton" name="toolButtonMirror">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/rays.svg</normaloff>:/toolbar/svgicons/rays.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="0">
+       <widget class="QToolButton" name="toolButtonFlipVertical">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/flip-vertical-2.svg</normaloff>:/toolbar/svgicons/flip-vertical-2.svg</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="10" column="0">
+       <widget class="QToolButton" name="toolButtonSelectLasso">
+        <property name="text">
+         <string>...</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/lasso_select.svg</normaloff>:/toolbar/svgicons/lasso_select.svg</iconset>
         </property>
         <property name="iconSize">
          <size>
@@ -661,21 +822,63 @@
       </item>
      </layout>
     </widget>
+    <widget class="QToolButton" name="toolButtonGradient">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>350</y>
+       <width>31</width>
+       <height>30</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>...</string>
+     </property>
+     <property name="icon">
+      <iconset resource="svgicons.qrc">
+       <normaloff>:/toolbar/svgicons/gradient.svg</normaloff>:/toolbar/svgicons/gradient.svg</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
    </widget>
   </widget>
   <widget class="QDockWidget" name="dwColorBox">
+   <property name="windowIcon">
+    <iconset resource="svgicons.qrc">
+     <normaloff>:/toolbar/svgicons/colorbox.svg</normaloff>:/toolbar/svgicons/colorbox.svg</iconset>
+   </property>
+   <property name="windowTitle">
+    <string>Colors</string>
+   </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetColors">
-    <layout class="QVBoxLayout" name="verticalLayout_2">
+    <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <widget class="QGraphicsView" name="widgetColors">
+       <property name="styleSheet">
+        <string notr="true">background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(157, 157, 157, 255), stop:1 rgba(255, 255, 255, 255));</string>
+       </property>
        <property name="frameShape">
-        <enum>QFrame::Shape::Box</enum>
+        <enum>QFrame::Shape::Panel</enum>
        </property>
        <property name="frameShadow">
         <enum>QFrame::Shadow::Plain</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
        </property>
       </widget>
      </item>
@@ -856,6 +1059,72 @@
         </widget>
        </item>
       </layout>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="dockWidgetLayers">
+   <property name="windowIcon">
+    <iconset resource="svgicons.qrc">
+     <normaloff>:/toolbar/svgicons/red_blue_drawers.svg</normaloff>:/toolbar/svgicons/red_blue_drawers.svg</iconset>
+   </property>
+   <property name="windowTitle">
+    <string>Layers</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_3">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QTreeWidget" name="treeWidget">
+       <column>
+        <property name="text">
+         <string>Visible</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Layer</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Locked</string>
+        </property>
+       </column>
+       <item>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/visible-gray.svg</normaloff>:/toolbar/svgicons/visible-gray.svg</iconset>
+        </property>
+        <property name="text">
+         <string>Background</string>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/opaque.svg</normaloff>:/toolbar/svgicons/opaque.svg</iconset>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="font">
+         <font>
+          <kerning>false</kerning>
+         </font>
+        </property>
+        <property name="icon">
+         <iconset resource="svgicons.qrc">
+          <normaloff>:/toolbar/svgicons/unlock.svg</normaloff>:/toolbar/svgicons/unlock.svg</iconset>
+        </property>
+        <property name="flags">
+         <set>ItemIsSelectable|ItemIsEditable|ItemIsEnabled</set>
+        </property>
+       </item>
+      </widget>
      </item>
     </layout>
    </widget>

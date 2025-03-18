@@ -5,10 +5,10 @@ import sys
 import PySide6
 from PySide6 import QtWidgets, QtCore
 from PySide6.QtCore import QPoint
-from PySide6.QtGui import QPen, QColor, QBrush, Qt, QImage, QPainter, QMouseEvent
-from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QLabel, QHBoxLayout
+from PySide6.QtGui import QPen, QColor, QBrush, Qt, QImage, QPainter, QMouseEvent, QPixmap
+from PySide6.QtWidgets import QWidget,QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QLabel, QHBoxLayout
+from typing import Type, cast
 
-import ie_functions
 import ie_globals
 from main_ui import Ui_MainWindow
 
@@ -16,8 +16,6 @@ from main_ui import Ui_MainWindow
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
-
-
         self.colorHeight = None
         self.colorWidth = None
         self.colors = None
@@ -38,8 +36,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
         # making image color to white
-        w=3000
-        h=3000
+        # w=1920
+        # h=1080
 
         #self.widgetPicture1.setBaseSize(w,h)
         #policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
@@ -47,16 +45,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #policy.setVerticalStretch(2)
         #self.widgetPicture1.setSizePolicy(policy)
 
-        self.widgetPicture1.setFixedSize(w * ie_globals.zoomFactor,h * ie_globals.zoomFactor)
-        self.widgetPicture1.image=PySide6.QtGui.QImage(w,h,QImage.Format.Format_RGBA64)
-        self.pic1=self.widgetPicture1.image
-        #self.widgetPicture1.setStyleSheet('background-image:url(\"checker20.png\");')
-        #col= QColor(255,0,0,255)
-        #self.pic1.fill(col)
-        self.pic2 = PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64)
-        self.picOrg = PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64)
+        # self.widgetPicture1.setFixedSize(w * ie_globals.zoomFactor,h * ie_globals.zoomFactor)
+        # self.widgetPicture1.image=PySide6.QtGui.QImage(w,h,QImage.Format.Format_RGBA64)
+        # self.pic1=self.widgetPicture1.image
+        # #self.widgetPicture1.setStyleSheet('background-image:url(\"checker20.png\");')
+        # #col= QColor(255,0,0,255)
+        # #self.pic1.fill(col)
+        # self.pic2 = PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64)
+        # self.picOrg = PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64)
         #self.pic2.fill(QColor(255, 0, 0))
         #self.graphicsView.hide()
+        self.tabWidget.removeTab(0)
+        import ie_editor
+        EditorType = cast(Type[QWidget], ie_editor.Editor)
+        doc: Type[QWidget] = EditorType
+        self.tabWidget.addTab(doc(QWidget), "Picture" + str(ie_globals.filenamecounter))
+        self.tabWidget.setCurrentIndex(self.tabWidget.count() - 1)
+        ie_globals.filenamecounter += 1
+        #action
+        self.actionOpen.triggered.connect(self.open_file)
+        self.actionSave.triggered.connect(self.save_file)
+        self.actionNew.triggered.connect(self.new_file)
+        self.actionUndo.triggered.connect(self.undo)
+        self.actionRedo.triggered.connect(self.redo)
 
         #tool buttons
         self.toolButtonLine.clicked.connect(self.on_line_click)
@@ -84,21 +95,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.horizontalSlider_3.valueChanged.connect(self.on_slider_change_3)
 
 
-        self.widgetPicture1.setMouseTracking(True)
-        self.widgetPicture1.mousePressEvent = self.pic1_mousePressEvent
-        self.widgetPicture1.mouseMoveEvent = self.pic1_mouseMoveEvent
-        self.widgetPicture1.paintEvent = self.pic1_paintEvent
+        # self.widgetPicture1.setMouseTracking(True)
+        # self.widgetPicture1.mousePressEvent = self.pic1_mousePressEvent
+        # self.widgetPicture1.mouseMoveEvent = self.pic1_mouseMoveEvent
+        # self.widgetPicture1.paintEvent = self.pic1_paintEvent
         #self.widgetPicture1.setFixedSize(400, 300)
-        self.widgetPicture1.show()
-        self.widgetPicture1.setAttribute(Qt.WidgetAttribute.WA_SetStyle,True)
-        self.colorBox()
+        # self.widgetPicture1.show()
+        # self.widgetPicture1.setAttribute(Qt.WidgetAttribute.WA_SetStyle,True)
+
         #self.color_scene = GraphicsScene(self.widgetColors,200,300)
         #self.widgetColors.setScene(self.color_scene)
-        self.statusText=["",""]
 
+        ie_globals.current_tool = "pen"
 
         self.statusLabel= QLabel(self.statusbar)
         self.statusLabel.setMinimumSize(500, 20)
+        self.colorBox()
     #sliders
     def on_slider_change_1(self, value):
         print("Slider 1 value changed to", value)
@@ -111,43 +123,47 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ie_globals.spray_density = value
 
     def on_zoom_in_click(self):
-        ie_globals.zoomFactor *= 1.25
-        self.pic1_update()
+
+        import ie_editor
+        activeDoc = self.tabWidget.currentWidget()
+        activeDoc.zoomFactor = activeDoc.zoomFactor * ie_globals.zoomInFactor
+        activeDoc.pic1_update()
     def on_zoom_out_click(self):
-        ie_globals.zoomFactor /= 1.25
-        self.pic1_update()
+        import ie_editor
+        activeDoc = self.tabWidget.currentWidget()
+        activeDoc.zoomFactor = activeDoc.zoomFactor * ie_globals.zoomOutFactor
+        activeDoc.pic1_update()
     def on_zoom_reset_click(self):
-        ie_globals.zoomFactor = 1.0
+        import ie_editor
+        activeDoc = self.tabWidget.currentWidget()
+        activeDoc.zoomFactor = 1.0
         self.pic1_update()
-
-
-
     def on_line_click(self):
         print("Line button clicked")
         ie_globals.current_tool = "line"
-        self.statusText[0]="Mode: line"
+        ie_globals.statusText[0]="Mode: line"
 
     def on_pen_click (self):
         print("Pen button clicked")
         ie_globals.current_tool = "pen"
-        self.statusText[0]= "Mode: pen"
+        ie_globals.statusText[0]= "Mode: pen"
 
     def on_rect_click(self):
         print("Rect button clicked")
         ie_globals.current_tool = "rect"
-        self.statusText[0]= "Mode: rectangle"
+        ie_globals.statusText[0]= "Mode: rectangle"
     def on_select_rect_click(self):
         print("Select button clicked")
         ie_globals.current_tool = "select"
-        self.statusText[0]= "Mode: rectangle select"
+        ie_globals.statusText[0]= "Mode: rectangle select"
     def on_circle_click(self):
         print("Circle button clicked")
         ie_globals.current_tool = "circle"
-        self.statusText[0]= "Mode: circle select"
+        ie_globals.statusText[0]= "Mode: circle select"
     def on_spray_click(self):
         print("Spray button clicked")
         ie_globals.current_tool = "spray"
-        self.statusText[0]= "Mode: spray"
+        ie_globals.statusText[0]= "Mode: spray"
     @staticmethod
     def on_fill_click():
         print("Fill button clicked")
@@ -165,23 +181,71 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.widgetPicture1.setStyleSheet("background-image:url(\"checker20.png\");")
         else:
             self.widgetPicture1.setStyleSheet("")
+    def open_file(self):
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open File", os.getcwd(), "Image Files (*.png *.jpg *.jpeg *.gif)")
+        if filename:
+            import ie_editor
+            doc = ie_editor.Editor(QWidget)
+            self.tabWidget.addTab(doc, "Picture" + str(ie_globals.filenamecounter))
+            doc.picOrg = PySide6.QtGui.QImage(filename)
+            doc.pic1_update()
+            #todo : filename will be added to tab name
+            self.tabWidget.setCurrentIndex(self.tabWidget.count() - 1)
+    def save_file(self):
+        #filename will get from tab name
+        import ie_editor
+        activeDoc = self.tabWidget.currentWidget()
 
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", os.getcwd(), "Image Files (*.png *.jpg *.jpeg *.gif)")
+        if filename:
+            activeDoc.picOrg.save(filename)
+    def new_file(self):
+       
+        #init new file dialog
+        import dialog_newImage_ui
+        dialog = dialog_newImage_ui.Ui_Dialog()
+        dialog_instance = QtWidgets.QDialog()  
+        dialog.setupUi(dialog_instance)
+        dialog.comboBoxSizeList.addItems(["100x100", "500x500", "800x600","1024x768","1280x1024","1600x1200","1920,1080","2048x1536"])
+        dialog.comboBoxSizeList.setCurrentIndex(3)
+        dialog.plainTextEditWidth.setPlainText("500")
+        dialog.plainTextEditHeight.setPlainText("500")
+        # Show the dialog
+        dialog_instance.exec()
+
+        # Create a new image
+        import ie_editor
+        EditorType = cast(Type[QWidget], ie_editor.Editor)
+        doc = EditorType
+        self.tabWidget.addTab(doc(QWidget), "Picture" + str(ie_globals.filenamecounter))
+        ie_globals.filenamecounter += 1
+        self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
+    def undo(self):
+        import ie_editor
+        print("Undo")
+        activeDoc = self.tabWidget.currentWidget()
+        activeDoc.undoImage()
+    def redo(self):
+        print("Redo")
+        import ie_editor
+        activeDoc = self.tabWidget.currentWidget()
+        activeDoc.redoImage()
     def colorBox(self):
 
         # Dock the ColorMatrixPanel to the right of the parent window
         self.colors = [  # Standard HCIE colors
             "#FFFFFF", "#FFC0C0", "#FFE0C0", "#FFFFC0",
             "#E0E0E0", "#FF8080", "#FFC080", "#FFFF80",
-            "#C0C0C0", "#FF0000", "#FF8000", "#FFFF00",
+            "#C0C0C0", "#FF0000", "#FF8000", "#E0E080",
             "#808080", "#C00000", "#C04000", "#C0C000",
             "#404040", "#800000", "#804000", "#808000",
-            "#000000", "#400000", "#646464", "#404000",
+            "#000000", "#400000", "#604000", "#404000",
 
             "#C0FFC0", "#C0FFFF", "#D3D5F5", "#FFC0FF",
             "#80FF80", "#80FFFF", "#AAAEEB", "#FF80FF",
             "#00FF00", "#00FFFF", "#8389E0", "#FF00FF",
-            "#00C000", "#00C0C0", "#232B99", "#C000C0",
-            "#008000", "#008080", "#101566", "#800080",
+            "#00C000", "#00C0C0", "#5E61b8", "#C000C0",
+            "#008000", "#008080", "#2d3c9c", "#800080",
             "#004000", "#004040", "#04051A", "#400040",
         ]
 
@@ -191,17 +255,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         pen.setCosmetic(True)
         pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        colorscene= QGraphicsScene()
+        colorscene= QGraphicsScene(0,0,100,100)
         self.widgetColors.setSceneRect(0, 0, 100, 100)
         self.widgetColors.setScene(colorscene)
 
         colorscene.addItem(color_item)
+        #Vertical layout of colors
+        vertical_layout = True
+        if vertical_layout:
+            rows=12
+            columns=4
+            self.colorWidth = 20
+            self.colorHeight = 15
+        else:
+            rows=4
+            columns=12
+            self.colorWidth = 20
+            self.colorHeight = 20
+
 
         self.colorWidth = 20
-        self.colorHeight = 15
-        for i in range(12):
-            for j in range(4):
-                color_str = self.colors[i * 4 + j]
+        self.colorHeight = 20
+        for row in range(rows):
+            for col in range(columns):
+                color_str = ""
+                if vertical_layout:
+                    color_str = self.colors[row * columns + col]
+                else:
+                    color_str = self.colors[col * rows + row]
                 if len(color_str) == 9:  # Check if it's in ARGB format #AARRGGBB
                     alpha = int(color_str[1:3], 16)
                     red = int(color_str[3:5], 16)
@@ -216,14 +297,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     blue = int(color_str[5:7], 16)
 
                     color = QColor(red, green, blue,255)
-                    print(red,green,blue)
-
+                    #print(red,green,blue)
 
                 pen= QPen(QColor(120, 120, 120), 1)
-
-
                 color_item = QtWidgets.QGraphicsRectItem(
-                    QtCore.QRectF(j * self.colorWidth-1, i * self.colorHeight-1,
+                    QtCore.QRectF(col * self.colorWidth, row * self.colorHeight,
                                   self.colorWidth, self.colorHeight))
                 color_item.setPen(pen)
                 color_item.setBrush(QBrush(color))
@@ -236,137 +314,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def colorbox_on_click(self, event):
         x, y = event.x(), event.y()
-        painter = QPainter(self.widgetColors)
         img= self.widgetColors.grab()
         color= img.toImage().pixel(x, y)
-        # color_index = (y // self.colorHeight) * 4 + (x // self.colorWidth)
-        # print(x,y,color_index)
-        # if 0 <= color_index < len(self.colors):
-        #     color_str=self.colors[color_index]
-        #     if len(color_str) == 9:  # Check if it's in ARGB format #AARRGGBB
-        #         alpha = int(color_str[1:3], 16)
-        #         red = int(color_str[3:5], 16)
-        #         green = int(color_str[5:7], 16)
-        #         blue = int(color_str[7:9], 16)
-        #         color = QColor(red, green, blue, alpha)
-        #         print(red, green, blue, alpha)
-        #     else:  # RRGGBB
-        #
-        #         red = int(color_str[1:3], 16)
-        #         green = int(color_str[3:5], 16)
-        #         blue = int(color_str[5:7], 16)
-        #
-        #         color = QColor(red, green, blue, 255)
-        #         print(red, green, blue)
+       
 
         ie_globals.pen.setColor(color)
         ie_globals.brush.setColor(color)
         ie_globals.pencolor = color
         ie_globals.brushcolor = color
-#region mouse events [rgba(255, 152, 121,0.3)]
 
-    def pic1_mousePressEvent(self, event):
-        # print mouse position
-        print  (event.pos())
-        # if left mouse button is pressed
-        if event.button() == Qt.MouseButton.LeftButton:
-            # make drawing flag true
-            eventstr="down"
-            self.pic2 = self.picOrg.copy()
-
-            ie_globals.drawing = True
-            # make last point to the point of cursor
-            ie_globals.lastPos = event.pos()
-            ie_globals.startPos = event.pos()
-            virtualStartPos: QPoint = QPoint(
-                math.trunc(ie_globals.startPos.x() / ie_globals.zoomFactor),
-                math.trunc(ie_globals.startPos.y() / ie_globals.zoomFactor))
-            if ie_globals.current_tool == 'pen':
-                    ie_functions.draw_line(self.picOrg,  virtualStartPos, virtualStartPos, eventstr)
-                    ie_globals.startPos = event.pos()
-            elif ie_globals.current_tool == 'fill':
-                ie_functions.fill(img1=self.pic1, pt1= event.pos(),task="down")
-            elif ie_globals.current_tool == 'wand':
-                ie_functions.select_wand(img1=self.pic1, pt1= event.pos(),task="down")
-            elif ie_globals.current_tool == 'eraser':
-                ie_functions.erase(self.pic1, event.pos(), "down")
-            
-            self.pic1_update()
-    def pic1_mouseMoveEvent(self, event:QMouseEvent):
-        eventstr:str="move"
-
-        if event.buttons() == Qt.MouseButton.LeftButton :
-            virtualStartPos: QPoint = QPoint(
-                math.trunc(ie_globals.startPos.x() / ie_globals.zoomFactor),
-                math.trunc(ie_globals.startPos.y() / ie_globals.zoomFactor)
-            )
-            virtualpos: QPoint = QPoint(
-                math.trunc(event.pos().x() / ie_globals.zoomFactor),
-                math.trunc(event.pos().y() / ie_globals.zoomFactor)
-
-            )
-            self.statusText[1]= "Mouse Position: " + str(virtualpos.x()) + ", " + str(virtualpos.y())
-            if ie_globals.drawing:
-                if ie_globals.current_tool == 'pen':
-                    ie_functions.draw_line(self.picOrg,  virtualStartPos, virtualpos, eventstr)
-                    ie_globals.startPos = event.pos()
-                elif ie_globals.current_tool == 'line':
-                    self.picOrg=self.pic2.copy()
-                    ie_functions.draw_line(self.picOrg, virtualStartPos, virtualpos, eventstr)
-                elif ie_globals.current_tool == 'circle':
-                    self.picOrg = self.pic2.copy()
-                    ie_functions.draw_circle(self.picOrg, virtualStartPos, virtualpos, eventstr)
-                elif ie_globals.current_tool == 'rect':
-                    self.picOrg = self.pic2.copy()
-                    ie_functions.draw_rect(self.picOrg, virtualStartPos, virtualpos, eventstr)
-                elif ie_globals.current_tool == 'spray':
-                    ie_functions.draw_spray(self.picOrg, virtualpos,eventstr)
-
-                ie_globals.lastPos = event.pos()
-                # update
-                self.pic1_update()
-                
-#endregion
-#region paint event [rgba(150, 150, 225,0.3)]
-    #picture 1 view update from original image
-    def pic1_update(self):
-        self.statusLabel.setText("  "+ str(self.statusText[0]) +" "+ str(self.statusText[1]))
-        w=self.picOrg.width()*ie_globals.zoomFactor
-        h=self.picOrg.height()*ie_globals.zoomFactor
-        #policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        #policy.setHorizontalStretch(1)
-        #policy.setVerticalStretch(1)
-        #self.widgetPicture1.setSizePolicy(policy)
-        #self.widgetPicture1.minimumWidth= w
-        #self.widgetPicture1.minimumHeight= h
-        #self.widgetPicture1.width =w
-        #self.widgetPicture1.height =h
-
-        self.widgetPicture1.setFixedSize(w, h)
-
-        self.pic1 = self.picOrg.scaled(w, h,Qt.AspectRatioMode.KeepAspectRatio)
-        self.widgetPicture1.image=self.pic1
-
-        self.scrollArea.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        self.scrollArea.minimumWidth= w
-        self.scrollArea.minimumHeight= h
-        self.scrollArea.width =w
-        self.scrollArea.height =h
-        self.scrollArea.update()
-
-        
-        self.widgetPicture1.update() #call paint event
-    # paint event
-    def pic1_paintEvent(self, event):
-        # create a canvas
-        canvasPainter = QPainter(self.widgetPicture1)
-        
-        # draw rectangle  on the canvas
-        canvasPainter.drawImage(0,0,  self.pic1)
-        canvasPainter.end()
-        canvasPainter = None
-
-    #def paintEvent(self, event):
+    def paintEvent(self, event):
+        ie_globals.statusText[0]= "Tool: "+ str(ie_globals.current_tool)
+        self.statusLabel.setText("  "+ str(ie_globals.statusText[0]) +" "+ str(ie_globals.statusText[1]))
 
         #pass
         #örnek painter

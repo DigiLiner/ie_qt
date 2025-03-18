@@ -18,18 +18,18 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QTransform)
 from PySide6.QtWidgets import (QAbstractScrollArea, QAbstractSpinBox, QApplication, QCheckBox,
     QDockWidget, QFormLayout, QFrame, QGraphicsView,
-    QGridLayout, QHBoxLayout, QLabel, QLayout,
-    QMainWindow, QMenu, QMenuBar, QScrollArea,
-    QSizePolicy, QSlider, QSpinBox, QStatusBar,
-    QTabWidget, QToolBar, QToolButton, QVBoxLayout,
-    QWidget)
+    QGridLayout, QHBoxLayout, QHeaderView, QLabel,
+    QLayout, QMainWindow, QMenu, QMenuBar,
+    QScrollArea, QSizePolicy, QSlider, QSpinBox,
+    QStatusBar, QTabWidget, QToolBar, QToolButton,
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 import svgicons_rc
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(933, 573)
+        MainWindow.resize(934, 781)
         icon = QIcon()
         icon.addFile(u":/programicon/svgicons/hcie.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -105,7 +105,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 527, 274))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 528, 482))
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -140,7 +140,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 933, 33))
+        self.menubar.setGeometry(QRect(0, 0, 934, 33))
         self.menuFile = QMenu(self.menubar)
         self.menuFile.setObjectName(u"menuFile")
         self.menuEdit = QMenu(self.menubar)
@@ -172,7 +172,7 @@ class Ui_MainWindow(object):
         self.dockWidgetContents.setObjectName(u"dockWidgetContents")
         self.gridLayoutWidget = QWidget(self.dockWidgetContents)
         self.gridLayoutWidget.setObjectName(u"gridLayoutWidget")
-        self.gridLayoutWidget.setGeometry(QRect(0, 20, 2462, 302))
+        self.gridLayoutWidget.setGeometry(QRect(0, 20, 2462, 452))
         self.formLayout = QFormLayout(self.gridLayoutWidget)
         self.formLayout.setObjectName(u"formLayout")
         self.formLayout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
@@ -326,79 +326,168 @@ class Ui_MainWindow(object):
 
         self.formLayout.setWidget(6, QFormLayout.LabelRole, self.toolButtonDropper)
 
-        self.toolButtonChecker = QToolButton(self.gridLayoutWidget)
-        self.toolButtonChecker.setObjectName(u"toolButtonChecker")
-        icon25 = QIcon()
-        icon25.addFile(u":/checker/checker20.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.toolButtonChecker.setIcon(icon25)
-        self.toolButtonChecker.setIconSize(QSize(24, 24))
-        self.toolButtonChecker.setCheckable(True)
-        self.toolButtonChecker.setChecked(True)
-
-        self.formLayout.setWidget(7, QFormLayout.LabelRole, self.toolButtonChecker)
-
         self.toolButtonZoomIn = QToolButton(self.gridLayoutWidget)
         self.toolButtonZoomIn.setObjectName(u"toolButtonZoomIn")
-        icon26 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ZoomIn))
-        self.toolButtonZoomIn.setIcon(icon26)
+        icon25 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ZoomIn))
+        self.toolButtonZoomIn.setIcon(icon25)
         self.toolButtonZoomIn.setIconSize(QSize(24, 24))
         self.toolButtonZoomIn.setCheckable(False)
         self.toolButtonZoomIn.setChecked(False)
 
         self.formLayout.setWidget(7, QFormLayout.FieldRole, self.toolButtonZoomIn)
 
-        self.toolButtonZoomOut = QToolButton(self.gridLayoutWidget)
-        self.toolButtonZoomOut.setObjectName(u"toolButtonZoomOut")
-        icon27 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ZoomOut))
-        self.toolButtonZoomOut.setIcon(icon27)
-        self.toolButtonZoomOut.setIconSize(QSize(24, 24))
-        self.toolButtonZoomOut.setCheckable(False)
-        self.toolButtonZoomOut.setChecked(False)
-
-        self.formLayout.setWidget(8, QFormLayout.LabelRole, self.toolButtonZoomOut)
-
         self.toolButtonZoomReset = QToolButton(self.gridLayoutWidget)
         self.toolButtonZoomReset.setObjectName(u"toolButtonZoomReset")
-        icon28 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ZoomFitBest))
-        self.toolButtonZoomReset.setIcon(icon28)
+        icon26 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ZoomFitBest))
+        self.toolButtonZoomReset.setIcon(icon26)
         self.toolButtonZoomReset.setIconSize(QSize(24, 24))
         self.toolButtonZoomReset.setCheckable(False)
         self.toolButtonZoomReset.setChecked(False)
 
         self.formLayout.setWidget(8, QFormLayout.FieldRole, self.toolButtonZoomReset)
 
-        self.toolButtonChecker_5 = QToolButton(self.gridLayoutWidget)
-        self.toolButtonChecker_5.setObjectName(u"toolButtonChecker_5")
-        self.toolButtonChecker_5.setIcon(icon25)
-        self.toolButtonChecker_5.setIconSize(QSize(24, 24))
-        self.toolButtonChecker_5.setCheckable(False)
-        self.toolButtonChecker_5.setChecked(False)
+        self.toolButtonFlipHorizontal = QToolButton(self.gridLayoutWidget)
+        self.toolButtonFlipHorizontal.setObjectName(u"toolButtonFlipHorizontal")
+        icon27 = QIcon()
+        icon27.addFile(u":/toolbar/svgicons/flip-horizontal-2.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonFlipHorizontal.setIcon(icon27)
+        self.toolButtonFlipHorizontal.setIconSize(QSize(24, 24))
+        self.toolButtonFlipHorizontal.setCheckable(False)
+        self.toolButtonFlipHorizontal.setChecked(False)
 
-        self.formLayout.setWidget(9, QFormLayout.LabelRole, self.toolButtonChecker_5)
+        self.formLayout.setWidget(9, QFormLayout.FieldRole, self.toolButtonFlipHorizontal)
 
-        self.toolButtonChecker_6 = QToolButton(self.gridLayoutWidget)
-        self.toolButtonChecker_6.setObjectName(u"toolButtonChecker_6")
-        self.toolButtonChecker_6.setIcon(icon25)
-        self.toolButtonChecker_6.setIconSize(QSize(24, 24))
-        self.toolButtonChecker_6.setCheckable(False)
-        self.toolButtonChecker_6.setChecked(False)
+        self.toolButtonPan = QToolButton(self.gridLayoutWidget)
+        self.toolButtonPan.setObjectName(u"toolButtonPan")
+        icon28 = QIcon()
+        icon28.addFile(u":/toolbar/svgicons/pan-gray.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonPan.setIcon(icon28)
+        self.toolButtonPan.setIconSize(QSize(24, 24))
+        self.toolButtonPan.setCheckable(False)
+        self.toolButtonPan.setChecked(False)
 
-        self.formLayout.setWidget(9, QFormLayout.FieldRole, self.toolButtonChecker_6)
+        self.formLayout.setWidget(10, QFormLayout.FieldRole, self.toolButtonPan)
 
+        self.toolButtonChecker_10 = QToolButton(self.gridLayoutWidget)
+        self.toolButtonChecker_10.setObjectName(u"toolButtonChecker_10")
+        icon29 = QIcon()
+        icon29.addFile(u":/toolbar/svgicons/stop.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonChecker_10.setIcon(icon29)
+        self.toolButtonChecker_10.setIconSize(QSize(24, 24))
+        self.toolButtonChecker_10.setCheckable(False)
+        self.toolButtonChecker_10.setChecked(False)
+
+        self.formLayout.setWidget(11, QFormLayout.FieldRole, self.toolButtonChecker_10)
+
+        self.toolButtonChecker_11 = QToolButton(self.gridLayoutWidget)
+        self.toolButtonChecker_11.setObjectName(u"toolButtonChecker_11")
+        self.toolButtonChecker_11.setIcon(icon29)
+        self.toolButtonChecker_11.setIconSize(QSize(24, 24))
+        self.toolButtonChecker_11.setCheckable(False)
+        self.toolButtonChecker_11.setChecked(False)
+
+        self.formLayout.setWidget(12, QFormLayout.FieldRole, self.toolButtonChecker_11)
+
+        self.toolButtonChecker_13 = QToolButton(self.gridLayoutWidget)
+        self.toolButtonChecker_13.setObjectName(u"toolButtonChecker_13")
+        self.toolButtonChecker_13.setIcon(icon29)
+        self.toolButtonChecker_13.setIconSize(QSize(24, 24))
+        self.toolButtonChecker_13.setCheckable(False)
+        self.toolButtonChecker_13.setChecked(False)
+
+        self.formLayout.setWidget(12, QFormLayout.LabelRole, self.toolButtonChecker_13)
+
+        self.toolButtonChecker_14 = QToolButton(self.gridLayoutWidget)
+        self.toolButtonChecker_14.setObjectName(u"toolButtonChecker_14")
+        self.toolButtonChecker_14.setIcon(icon29)
+        self.toolButtonChecker_14.setIconSize(QSize(24, 24))
+        self.toolButtonChecker_14.setCheckable(False)
+        self.toolButtonChecker_14.setChecked(False)
+
+        self.formLayout.setWidget(13, QFormLayout.FieldRole, self.toolButtonChecker_14)
+
+        self.toolButtonChecker = QToolButton(self.gridLayoutWidget)
+        self.toolButtonChecker.setObjectName(u"toolButtonChecker")
+        icon30 = QIcon()
+        icon30.addFile(u":/checker/checker20.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonChecker.setIcon(icon30)
+        self.toolButtonChecker.setIconSize(QSize(24, 24))
+        self.toolButtonChecker.setCheckable(True)
+        self.toolButtonChecker.setChecked(True)
+
+        self.formLayout.setWidget(14, QFormLayout.LabelRole, self.toolButtonChecker)
+
+        self.toolButtonZoomOut = QToolButton(self.gridLayoutWidget)
+        self.toolButtonZoomOut.setObjectName(u"toolButtonZoomOut")
+        icon31 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ZoomOut))
+        self.toolButtonZoomOut.setIcon(icon31)
+        self.toolButtonZoomOut.setIconSize(QSize(24, 24))
+        self.toolButtonZoomOut.setCheckable(False)
+        self.toolButtonZoomOut.setChecked(False)
+
+        self.formLayout.setWidget(7, QFormLayout.LabelRole, self.toolButtonZoomOut)
+
+        self.toolButtonMirror = QToolButton(self.gridLayoutWidget)
+        self.toolButtonMirror.setObjectName(u"toolButtonMirror")
+        icon32 = QIcon()
+        icon32.addFile(u":/toolbar/svgicons/rays.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonMirror.setIcon(icon32)
+        self.toolButtonMirror.setIconSize(QSize(24, 24))
+        self.toolButtonMirror.setCheckable(False)
+        self.toolButtonMirror.setChecked(False)
+
+        self.formLayout.setWidget(8, QFormLayout.LabelRole, self.toolButtonMirror)
+
+        self.toolButtonFlipVertical = QToolButton(self.gridLayoutWidget)
+        self.toolButtonFlipVertical.setObjectName(u"toolButtonFlipVertical")
+        icon33 = QIcon()
+        icon33.addFile(u":/toolbar/svgicons/flip-vertical-2.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonFlipVertical.setIcon(icon33)
+        self.toolButtonFlipVertical.setIconSize(QSize(24, 24))
+        self.toolButtonFlipVertical.setCheckable(False)
+        self.toolButtonFlipVertical.setChecked(False)
+
+        self.formLayout.setWidget(9, QFormLayout.LabelRole, self.toolButtonFlipVertical)
+
+        self.toolButtonSelectLasso = QToolButton(self.gridLayoutWidget)
+        self.toolButtonSelectLasso.setObjectName(u"toolButtonSelectLasso")
+        icon34 = QIcon()
+        icon34.addFile(u":/toolbar/svgicons/lasso_select.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonSelectLasso.setIcon(icon34)
+        self.toolButtonSelectLasso.setIconSize(QSize(24, 24))
+        self.toolButtonSelectLasso.setCheckable(False)
+        self.toolButtonSelectLasso.setChecked(False)
+
+        self.formLayout.setWidget(10, QFormLayout.LabelRole, self.toolButtonSelectLasso)
+
+        self.toolButtonGradient = QToolButton(self.dockWidgetContents)
+        self.toolButtonGradient.setObjectName(u"toolButtonGradient")
+        self.toolButtonGradient.setGeometry(QRect(0, 350, 31, 30))
+        icon35 = QIcon()
+        icon35.addFile(u":/toolbar/svgicons/gradient.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.toolButtonGradient.setIcon(icon35)
+        self.toolButtonGradient.setIconSize(QSize(24, 24))
+        self.toolButtonGradient.setCheckable(False)
+        self.toolButtonGradient.setChecked(False)
         self.dwTools.setWidget(self.dockWidgetContents)
         MainWindow.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dwTools)
         self.dwColorBox = QDockWidget(MainWindow)
         self.dwColorBox.setObjectName(u"dwColorBox")
+        icon36 = QIcon()
+        icon36.addFile(u":/toolbar/svgicons/colorbox.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.dwColorBox.setWindowIcon(icon36)
         self.dockWidgetColors = QWidget()
         self.dockWidgetColors.setObjectName(u"dockWidgetColors")
-        self.verticalLayout_2 = QVBoxLayout(self.dockWidgetColors)
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalLayout = QVBoxLayout(self.dockWidgetColors)
+        self.verticalLayout.setObjectName(u"verticalLayout")
         self.widgetColors = QGraphicsView(self.dockWidgetColors)
         self.widgetColors.setObjectName(u"widgetColors")
-        self.widgetColors.setFrameShape(QFrame.Shape.Box)
+        self.widgetColors.setStyleSheet(u"background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(157, 157, 157, 255), stop:1 rgba(255, 255, 255, 255));")
+        self.widgetColors.setFrameShape(QFrame.Shape.Panel)
         self.widgetColors.setFrameShadow(QFrame.Shadow.Plain)
+        self.widgetColors.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
-        self.verticalLayout_2.addWidget(self.widgetColors)
+        self.verticalLayout.addWidget(self.widgetColors)
 
         self.dwColorBox.setWidget(self.dockWidgetColors)
         MainWindow.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dwColorBox)
@@ -537,6 +626,36 @@ class Ui_MainWindow(object):
 
         self.dwToolProperties.setWidget(self.dockWidgetContents_2)
         MainWindow.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.dwToolProperties)
+        self.dockWidgetLayers = QDockWidget(MainWindow)
+        self.dockWidgetLayers.setObjectName(u"dockWidgetLayers")
+        icon37 = QIcon()
+        icon37.addFile(u":/toolbar/svgicons/red_blue_drawers.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.dockWidgetLayers.setWindowIcon(icon37)
+        self.dockWidgetContents_3 = QWidget()
+        self.dockWidgetContents_3.setObjectName(u"dockWidgetContents_3")
+        self.horizontalLayout_2 = QHBoxLayout(self.dockWidgetContents_3)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.treeWidget = QTreeWidget(self.dockWidgetContents_3)
+        icon38 = QIcon()
+        icon38.addFile(u":/toolbar/svgicons/visible-gray.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon39 = QIcon()
+        icon39.addFile(u":/toolbar/svgicons/opaque.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon40 = QIcon()
+        icon40.addFile(u":/toolbar/svgicons/unlock.svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        font = QFont()
+        font.setKerning(False)
+        __qtreewidgetitem = QTreeWidgetItem(self.treeWidget)
+        __qtreewidgetitem.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEditable|Qt.ItemIsEnabled);
+        __qtreewidgetitem.setFont(2, font);
+        __qtreewidgetitem.setIcon(2, icon40);
+        __qtreewidgetitem.setIcon(1, icon39);
+        __qtreewidgetitem.setIcon(0, icon38);
+        self.treeWidget.setObjectName(u"treeWidget")
+
+        self.horizontalLayout_2.addWidget(self.treeWidget)
+
+        self.dockWidgetLayers.setWidget(self.dockWidgetContents_3)
+        MainWindow.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockWidgetLayers)
 
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
@@ -629,12 +748,21 @@ class Ui_MainWindow(object):
         self.toolButtonEraser.setText(QCoreApplication.translate("MainWindow", u"...", None))
         self.toolButtonText.setText(QCoreApplication.translate("MainWindow", u"...", None))
         self.toolButtonDropper.setText(QCoreApplication.translate("MainWindow", u"...", None))
-        self.toolButtonChecker.setText(QCoreApplication.translate("MainWindow", u"...", None))
         self.toolButtonZoomIn.setText(QCoreApplication.translate("MainWindow", u"...", None))
-        self.toolButtonZoomOut.setText(QCoreApplication.translate("MainWindow", u"...", None))
         self.toolButtonZoomReset.setText(QCoreApplication.translate("MainWindow", u"...", None))
-        self.toolButtonChecker_5.setText(QCoreApplication.translate("MainWindow", u"...", None))
-        self.toolButtonChecker_6.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonFlipHorizontal.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonPan.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonChecker_10.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonChecker_11.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonChecker_13.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonChecker_14.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonChecker.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonZoomOut.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonMirror.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonFlipVertical.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonSelectLasso.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.toolButtonGradient.setText(QCoreApplication.translate("MainWindow", u"...", None))
+        self.dwColorBox.setWindowTitle(QCoreApplication.translate("MainWindow", u"Colors", None))
         self.dwToolProperties.setWindowTitle("")
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Density", None))
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"Opacity", None))
@@ -643,5 +771,17 @@ class Ui_MainWindow(object):
         self.label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"Radius", None))
         self.label_4.setText(QCoreApplication.translate("MainWindow", u"Hardness", None))
+        self.dockWidgetLayers.setWindowTitle(QCoreApplication.translate("MainWindow", u"Layers", None))
+        ___qtreewidgetitem = self.treeWidget.headerItem()
+        ___qtreewidgetitem.setText(2, QCoreApplication.translate("MainWindow", u"Locked", None));
+        ___qtreewidgetitem.setText(1, QCoreApplication.translate("MainWindow", u"Layer", None));
+        ___qtreewidgetitem.setText(0, QCoreApplication.translate("MainWindow", u"Visible", None));
+
+        __sortingEnabled = self.treeWidget.isSortingEnabled()
+        self.treeWidget.setSortingEnabled(False)
+        ___qtreewidgetitem1 = self.treeWidget.topLevelItem(0)
+        ___qtreewidgetitem1.setText(1, QCoreApplication.translate("MainWindow", u"Background", None));
+        self.treeWidget.setSortingEnabled(__sortingEnabled)
+
     # retranslateUi
 
