@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="500mm"
+   height="500mm"
+   viewBox="0 0 500 500"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="gradient.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.24504206"
+     inkscape:cx="410.13367"
+     inkscape:cy="1028.3949"
+     inkscape:window-width="1920"
+     inkscape:window-height="996"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient6"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#8438a8;stop-opacity:1;"
+         offset="0"
+         id="stop6" />
+      <stop
+         style="stop-color:#507dbe;stop-opacity:0.82741117;"
+         offset="1"
+         id="stop7" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient6"
+       id="linearGradient7"
+       x1="128.94836"
+       y1="76.98172"
+       x2="366.65533"
+       y2="416.46246"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     inkscape:label="Katman 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <circle
+       id="path5"
+       style="fill:#ef8946;stroke:#707070;stroke-width:0.264583"
+       cx="183.82686"
+       cy="330.94232"
+       r="0.035955299" />
+    <rect
+       style="fill:url(#linearGradient7);fill-opacity:1;stroke:none;stroke-width:0.26458333;stroke-linecap:round;stroke-dasharray:0, 2.91041675;stroke-opacity:1;stroke-dashoffset:0;stroke-linejoin:round;vector-effect:non-scaling-stroke;-inkscape-stroke:hairline"
+       id="rect6"
+       width="407.06445"
+       height="407.06445"
+       x="44.269611"
+       y="43.189865" />
+  </g>
+</svg>
