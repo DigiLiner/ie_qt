@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+from logging import exception
 
 import PySide6
 from PySide6 import QtWidgets, QtCore
@@ -11,7 +12,8 @@ from typing import Type, cast
 
 import ie_globals
 from main_ui import Ui_MainWindow
-
+from float_window_ui import Ui_floatWindow as float_window_ui
+   
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -68,24 +70,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionNew.triggered.connect(self.new_file)
         self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
+        self.dwColorBox.dockLocationChanged.connect(self.colorBox)
+
+        self.closeEvent = self.close_event
+
+
 
         #tool buttons
-        self.toolButtonLine.clicked.connect(self.on_line_click)
-        self.toolButtonPen.clicked.connect(self.on_pen_click)
-        self.toolButtonRect.clicked.connect(self.on_rect_click)
-        self.toolButtonSelectRectangle.clicked.connect(self.on_select_rect_click)
-        self.toolButtonCircle.clicked.connect(self.on_circle_click)
-        self.toolButtonSpray.clicked.connect(self.on_spray_click)
-        self.toolButtonFill.clicked.connect(self.on_fill_click)
-        self.toolButtonEraser.clicked.connect(self.on_eraser_click)
-        self.toolButtonChecker.clicked.connect(self.on_checker_click)
-        self.toolButtonWand.clicked.connect(self.on_wand_click)
-        self.toolButtonZoomIn.clicked.connect(self.on_zoom_in_click)
-        self.toolButtonZoomOut.clicked.connect(self.on_zoom_out_click)
-        self.toolButtonZoomReset.clicked.connect(self.on_zoom_reset_click)
+        # self.toolButtonLine.clicked.connect(self.on_line_click)
+        # self.toolButtonPen.clicked.connect(self.on_pen_click)
+        # self.toolButtonRect.clicked.connect(self.on_rect_click)
+        # self.toolButtonRoundRect.clicked.connect(self.on_round_rect_click)
+        # self.toolButtonSelectRectangle.clicked.connect(self.on_select_rect_click)
+        # self.toolButtonCircle.clicked.connect(self.on_circle_click)
+        # self.toolButtonSpray.clicked.connect(self.on_spray_click)
+        # self.toolButtonFill.clicked.connect(self.on_fill_click)
+        # self.toolButtonEraser.clicked.connect(self.on_eraser_click)
+        # self.toolButtonChecker.clicked.connect(self.on_checker_click)
+        # self.toolButtonWand.clicked.connect(self.on_wand_click)
+        # self.toolButtonZoomIn.clicked.connect(self.on_zoom_in_click)
+        # self.toolButtonZoomOut.clicked.connect(self.on_zoom_out_click)
+        # self.toolButtonZoomReset.clicked.connect(self.on_zoom_reset_click)
+        # self.toolButtonDropper.clicked.connect(self.on_dropper_click)
+        #for tool_button in [self.toolButtonLine, self.toolButtonPen, self.toolButtonRect, self.toolButtonRoundRect, self.toolButtonSelectRectangle, self.toolButtonCircle, self.toolButtonSpray, self.toolButtonFill, self.toolButtonEraser, self.toolButtonChecker, self.toolButtonWand, self.toolButtonZoomIn, self.toolButtonZoomOut, self.toolButtonZoomReset, self.toolButtonDropper]:
 
+        #search for all tool buttons in the ui and set events
+        for obj in self.dockWidgetContents.children():
+            if isinstance(obj, QtWidgets.QToolButton):
+                self.set_button_events(obj)
+                print("T1:",obj.objectName())
+            for obj1 in obj.children():
+                if isinstance(obj1, QtWidgets.QToolButton):
+                    self.set_button_events(obj1)
+                    print("T2:", obj1)
+                for obj2 in [obj1.children()]:
 
-
+                    if isinstance(obj2, QtWidgets.QToolButton):
+                        self.set_button_events(obj2)
+                        print("T3:", obj2.objectName())
 
         self.widgetColors.setMouseTracking(True)
         self.widgetColors.mousePressEvent = self.colorbox_on_click
@@ -95,92 +117,201 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.horizontalSlider_3.valueChanged.connect(self.on_slider_change_3)
 
 
-        # self.widgetPicture1.setMouseTracking(True)
-        # self.widgetPicture1.mousePressEvent = self.pic1_mousePressEvent
-        # self.widgetPicture1.mouseMoveEvent = self.pic1_mouseMoveEvent
-        # self.widgetPicture1.paintEvent = self.pic1_paintEvent
-        #self.widgetPicture1.setFixedSize(400, 300)
-        # self.widgetPicture1.show()
-        # self.widgetPicture1.setAttribute(Qt.WidgetAttribute.WA_SetStyle,True)
-
-        #self.color_scene = GraphicsScene(self.widgetColors,200,300)
-        #self.widgetColors.setScene(self.color_scene)
 
         ie_globals.current_tool = "pen"
 
         self.statusLabel= QLabel(self.statusbar)
         self.statusLabel.setMinimumSize(500, 20)
         self.colorBox()
+        #set a timer update periodically
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.timer_update)
+        #refresh every 200ms , status update , repaint etc.
+        self.timer.start(200)
+
+
+
+        
+
+
+
     #sliders
+        self.disable_slider_events=False # Disable slider events while updating them to avoid infinite loop
+        self.set_slider_values()
+
+    def set_slider_values(self):
+        self.disable_slider_events = True # Disable slider events while updating them to avoid infinite loop
+        self.horizontalSlider_1.setMinimum(1)
+        self.horizontalSlider_1.setMaximum(100)
+        self.horizontalSlider_1.setValue(ie_globals.pen_width)
+        self.horizontalSlider_2.setMinimum(1)
+        self.horizontalSlider_2.setMaximum(100)
+        self.horizontalSlider_2.setValue(ie_globals.spray_radius)
+        self.horizontalSlider_3.setMinimum(1)
+        self.horizontalSlider_3.setMaximum(100)
+        self.horizontalSlider_3.setValue(ie_globals.spray_density)
+        #todo change
+        self.horizontalSlider_4.setMinimum(1)
+        self.horizontalSlider_4.setMaximum(100)
+        self.horizontalSlider_4.setValue(ie_globals.pen_opacity)
+        self.horizontalSlider_5.setMinimum(1)
+        self.horizontalSlider_5.setMaximum(100)
+        self.horizontalSlider_5.setValue(ie_globals.pen_blur)
+        self.horizontalSlider_6.setMinimum(1)
+        self.horizontalSlider_6.setMaximum(100)
+        self.horizontalSlider_6.setValue(50)
+        self.disable_slider_events = False
+        self.toolBar.setIconSize(QtCore.QSize(24, 24))
+    ##################################################
+    ######################################################
+    ##########################################################
+    def set_button_events(self,tool_button:QtWidgets.QToolButton):
+        tool_button.setMouseTracking(True)
+        tool_button.setTabletTracking(True)
+        tool_button.mouseMoveEvent = lambda e: self.on_tool_button_move(e, tool_button)
+        tool_button.mousePressEvent =lambda e:self.on_tool_button_click(tool_button)
+        print("Tool button text:", tool_button.objectName())
+
+
+    def on_tool_button_move(self, event,tool_button:QtWidgets.QToolButton):
+        if self.disable_slider_events:
+            return
+        print("Tool button text:", tool_button.objectName())
+
+    def on_tool_button_click(self, tool_button):
+        print("Tool button click objname:", tool_button.objectName())
+        print ("toolname" ,(tool_button.accessibleName() ))
+        ctool=ie_globals.current_tool
+        if tool_button.objectName() == "toolButtonPen":
+            ctool="pen"
+        elif tool_button.objectName() == "toolButtonLine":
+            ctool="line"
+        elif tool_button.objectName() == "toolButtonRect":
+            ctool="rect"
+        elif tool_button.objectName() == "toolButtonRoundRect":
+            ctool="round_rect"
+        elif tool_button.objectName() == "toolButtonSelectRectangle":
+            ctool="select"
+        elif tool_button.objectName() == "toolButtonCircle":
+            ctool="circle"
+        elif tool_button.objectName() == "toolButtonSpray":
+            ctool="spray"
+        elif tool_button.objectName() == "toolButtonFill":
+            ctool="fill"
+        elif tool_button.objectName() == "toolButtonEraser":
+            ctool="eraser"
+        elif tool_button.objectName() == "toolButtonWand":
+            ctool="wand"
+        elif tool_button.objectName() == "toolButtonZoomIn":
+            self.zoom_in()
+        elif tool_button.objectName() == "toolButtonZoomOut":
+            self.zoom_out()
+        elif tool_button.objectName() == "toolButtonZoomReset":
+            self.zoom_reset()
+        elif tool_button.objectName() == "toolButtonDropper":
+            ctool="dropper"
+            ie_globals.previous_tool = ie_globals.current_tool
+            ctool = "dropper"
+            ie_globals.statusText.tool= "Mode: dropper"
+        elif tool_button.objectName() == "toolButtonChecker":
+            import ie_editor
+            activeDoc:ie_editor.Editor = self.tabWidget.currentWidget()
+            activeDoc.is_checkerboard_enabled=not activeDoc.is_checkerboard_enabled
+            if activeDoc.is_checkerboard_enabled==True:
+                activeDoc.widgetPicture1.setStyleSheet("background-image:url(\"checker20.png\");")
+            else:
+                activeDoc.widgetPicture1.setStyleSheet("")
+            print(tool_button.isChecked())
+            self.widgetPicture1.update()
+        else:
+            exception("Tool button click event not implemented for tool:", ctool)
+        ie_globals.current_tool = ctool
+        ie_globals.statusText.tool = "Mode: " + ctool
+
+
+
+    def timer_update(self):
+        self.statusLabel.setText(ie_globals.statusText.tool + " Pos: " + str(ie_globals.statusText.pos) + " Zoom: " + str(ie_globals.statusText.zoom))
+        self.repaint()
+
     def on_slider_change_1(self, value):
+        if self.disable_slider_events:
+            return
         print("Slider 1 value changed to", value)
         ie_globals.pen.setWidth(value)
     def on_slider_change_2(self, value):
+        if self.disable_slider_events:
+            return
         print("Slider 2 value changed to", value)
         ie_globals.spray_radius = value
     def on_slider_change_3(self, value):
+        if self.disable_slider_events:
+            return
         print("Slider 3 value changed to", value)
         ie_globals.spray_density = value
 
-    def on_zoom_in_click(self):
-
+    def zoom_in(self):
         import ie_editor
         activeDoc = self.tabWidget.currentWidget()
         activeDoc.zoomFactor = activeDoc.zoomFactor * ie_globals.zoomInFactor
         activeDoc.pic1_update()
-    def on_zoom_out_click(self):
+    def zoom_out(self):
         import ie_editor
         activeDoc = self.tabWidget.currentWidget()
         activeDoc.zoomFactor = activeDoc.zoomFactor * ie_globals.zoomOutFactor
         activeDoc.pic1_update()
-    def on_zoom_reset_click(self):
+    def zoom_reset(self):
         import ie_editor
         activeDoc = self.tabWidget.currentWidget()
         activeDoc.zoomFactor = 1.0
         self.pic1_update()
-    def on_line_click(self):
-        print("Line button clicked")
-        ie_globals.current_tool = "line"
-        ie_globals.statusText[0]="Mode: line"
+    # def on_line_click(self):
+    #     print("Line button clicked")
+    #     ie_globals.current_tool = "line"
+    #     ie_globals.statusText.tool="Mode: line"
+    #
+    # def on_pen_click (self):
+    #     print("Pen button clicked")
+    #     ie_globals.current_tool = "pen"
+    #     ie_globals.statusText.tool= "Mode: pen"
+    #
+    # def on_rect_click(self):
+    #     print("Rect button clicked")
+    #     ie_globals.current_tool = "rect"
+    #     ie_globals.statusText.tool= "Mode: rectangle"
+    # def on_round_rect_click(self):
+    #     print("RoundRect button clicked")
+    #     ie_globals.current_tool = "round_rect"
+    #     ie_globals.statusText.tool= "Mode: rounded rectangle"
+    #
+    # def on_select_rect_click(self):
+    #     print("Select button clicked")
+    #     ie_globals.current_tool = "select"
+    #     ie_globals.statusText.tool= "Mode: rectangle select"
+    # def on_circle_click(self):
+    #     print("Circle button clicked")
+    #     ie_globals.current_tool = "circle"
+    #     ie_globals.statusText.tool= "Mode: circle select"
+    # def on_spray_click(self):
+    #     print("Spray button clicked")
+    #     ie_globals.current_tool = "spray"
+    #     ie_globals.statusText.tool= "Mode: spray"
+    # @staticmethod
+    # def on_fill_click():
+    #     print("Fill button clicked")
+    #     ie_globals.current_tool = "fill"
+    # @staticmethod
+    # def on_eraser_click():
+    #     print("Eraser button clicked")
+    #     ie_globals.current_tool = "eraser"
+    # def on_wand_click(self):
+    #     ie_globals.current_tool = "wand"
+    # def on_dropper_click(self):
+    #     ie_globals.previous_tool = ie_globals.current_tool
+    #     ie_globals.current_tool = "dropper"
+    #     ie_globals.statusText.tool= "Mode: dropper"
 
-    def on_pen_click (self):
-        print("Pen button clicked")
-        ie_globals.current_tool = "pen"
-        ie_globals.statusText[0]= "Mode: pen"
 
-    def on_rect_click(self):
-        print("Rect button clicked")
-        ie_globals.current_tool = "rect"
-        ie_globals.statusText[0]= "Mode: rectangle"
-    def on_select_rect_click(self):
-        print("Select button clicked")
-        ie_globals.current_tool = "select"
-        ie_globals.statusText[0]= "Mode: rectangle select"
-    def on_circle_click(self):
-        print("Circle button clicked")
-        ie_globals.current_tool = "circle"
-        ie_globals.statusText[0]= "Mode: circle select"
-    def on_spray_click(self):
-        print("Spray button clicked")
-        ie_globals.current_tool = "spray"
-        ie_globals.statusText[0]= "Mode: spray"
-    @staticmethod
-    def on_fill_click():
-        print("Fill button clicked")
-        ie_globals.current_tool = "fill"
-    @staticmethod
-    def on_eraser_click():
-        print("Eraser button clicked")
-        ie_globals.current_tool = "eraser"
-    def on_wand_click(self):
-        ie_globals.current_tool = "wand"
-
-    def on_checker_click(self):
-        print("Checker button clicked")
-        if self.toolButtonChecker.isChecked():
-            self.widgetPicture1.setStyleSheet("background-image:url(\"checker20.png\");")
-        else:
-            self.widgetPicture1.setStyleSheet("")
     def open_file(self):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open File", os.getcwd(), "Image Files (*.png *.jpg *.jpeg *.gif)")
         if filename:
@@ -230,6 +361,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         import ie_editor
         activeDoc = self.tabWidget.currentWidget()
         activeDoc.redoImage()
+
+
     def colorBox(self):
 
         # Dock the ColorMatrixPanel to the right of the parent window
@@ -261,7 +394,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         colorscene.addItem(color_item)
         #Vertical layout of colors
-        vertical_layout = True
+        dock_area = self.dockWidgetArea(self.dwColorBox)
+        if dock_area in (Qt.LeftDockWidgetArea, Qt.RightDockWidgetArea):
+            vertical_layout = True
+        else:
+            vertical_layout = False
+
+        #vertical_layout = True
         if vertical_layout:
             rows=12
             columns=4
@@ -324,8 +463,31 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ie_globals.brushcolor = color
 
     def paintEvent(self, event):
-        ie_globals.statusText[0]= "Tool: "+ str(ie_globals.current_tool)
-        self.statusLabel.setText("  "+ str(ie_globals.statusText[0]) +" "+ str(ie_globals.statusText[1]))
+        
+        try:
+            main_geometry = self.geometry()
+            float_geometry = float_window.geometry()
+
+            float_geometry.setLeft(main_geometry.right() - float_geometry.width()-150)
+            float_geometry.setTop(main_geometry.top())
+            float_geometry.setHeight(60)
+            float_geometry.setWidth(150)
+            float_window.setGeometry(float_geometry)
+
+        except AttributeError as e:
+            print(f"An error occurred while setting the geometry of the float window: {e}")
+
+      
+
+        ie_globals.statusText.tool= "Tool: "+ str(ie_globals.current_tool)
+        self.statusLabel.setText("  "+ str(ie_globals.statusText.tool) +" "+ str(ie_globals.statusText.pos))
+        float_window.repaint()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(QPen(QColor(80, 80, 80), 1))
+        #painter.setBrush(QBrush(QColor(180, 180, 180)))
+        painter.setBrush(ie_globals.pen.color())
+        painter.drawRoundedRect(self.rect().right()-100, 5, 20, 20, 2, 2)
 
         #pass
         #örnek painter
@@ -344,6 +506,46 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # painter.drawPolyline(polyline)
 
 #endregion
+        self.moveEvent= self.moveEvent
+
+    def moveEvent(self, event):
+        self.repaint()
+        #to update the position of the float window
+
+    def close_event(self, event):
+        
+        float_window.close()
+        float_window.deleteLater()
+            # Call the base class implementation to ensure proper cleanup
+        super(MainWindow, self).closeEvent(event)
+       
+
+class FloatWindow(QtWidgets.QMainWindow,float_window_ui):
+    def __init__(self):
+        QMainWindow.__init__(self)
+    
+        self.ui = Ui_MainWindow()
+        self.setupUi(self)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint| Qt.WindowType.MSWindowsFixedSizeDialogHint|Qt.WindowType.WindowDoesNotAcceptFocus)
+        #self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.paintEvent= self.paintEvent
+
+        self.moveEvent= self.moveEvent
+    def paintEvent(self,event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(QPen(QColor(80, 80, 80), 1))
+        painter.setBrush(QBrush(QColor(180, 180, 180)))
+        
+        painter.drawRoundedRect(5,5,self.width()-10, self.height()-10, 5, 5)
+        painter.setBrush(ie_globals.pen.color())
+        painter.drawRoundedRect(10,10, 20,20, 2, 2)
+        
+
+
+
+
+
 if __name__ == "__main__":
     #Bu kısımda değişiklik yapılırsa çizimler kötüleşiyor. DPI ile alakalı
     os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
@@ -355,4 +557,6 @@ if __name__ == "__main__":
     app.setAttribute( Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
     window = MainWindow()
     window.show()
-    sys.exit(app.exec_())
+    float_window= FloatWindow()
+    float_window.show()
+    sys.exit(app.exec())

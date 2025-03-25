@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QSizePo
 from PySide6.QtWidgets import QFrame
 import ie_tools
 import draw_window_ui
-import ie_globals
+import ie_globals, ie_mouse_events
 
 class Editor(draw_window_ui.Ui_Form, QWidget):
     def __init__(self, image_path: str, /) -> None:
@@ -20,7 +20,7 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         self.setupUi(self)  # Ensure the UI is set up
         self.image_path = image_path
         # You can add more initialization code here
-     
+        self.is_checkerboard_enabled = True
         w=ie_globals.image_width
         h=ie_globals.image_height
  
@@ -37,7 +37,7 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         self.widgetPicture1.mouseMoveEvent = self.pic1_mouseMoveEvent
         self.widgetPicture1.mouseReleaseEvent = self.pic1_mouseReleaseEvent
         self.widgetPicture1.paintEvent = self.pic1_paintEvent
-        self.widgetPicture1.wheelEvent = self.pic1_mouseWheelEvent
+        self.widgetPicture1.wheelEvent = self.pic1_mouseWheelEvent # type: ignore
         # self.widgetPicture1.setFixedSize(400, 300)
         self.widgetPicture1.show()
         self.widgetPicture1.setAttribute(Qt.WidgetAttribute.WA_SetStyle, True)
@@ -51,6 +51,20 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         self.zoomFactor = 1.0
         self.undo_index=-1
 
+
+        layerbg: ie_globals.Layer=ie_globals.Layer("Background", visible=True, opacity=100, image=PySide6.QtGui.QImage(w, h, QImage.Format.Format_RGBA64), rasterized=True,locked=False)
+        self.layers: list = []
+        self.layers.append(layerbg)
+        self.currentLayer = 0
+
+        self.panning = False
+        self.previous_tool = "pen"
+
+    
+
+
+
+#region mouse wheel [rgba(222, 100, 222,0.1)]
     def pic1_mouseWheelEvent(self, event: QtGui.QWheelEvent) -> None:
         # Scroll değerleri
         hbar = self.scrollArea.horizontalScrollBar()
@@ -93,7 +107,9 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         # ScrollBar değerlerini ayarla
         hbar.setValue(int(new_scroll_x))
         vbar.setValue(int(new_scroll_y))
-    #region mouse press [rgba(255, 255, 121,0.3)]
+#endregion
+
+#region mouse press [rgba(255, 255, 121,0.1)]
     def pic1_mousePressEvent(self, event: QMouseEvent) -> None:
         # print mouse position
         #print  (event.pos())
@@ -118,15 +134,21 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
                 ie_tools.select_wand(img1=self.picOrg, pt1= virtualStartPos,task="down")
             elif ie_globals.current_tool == 'eraser':
                 ie_tools.erase(self.picOrg, pt1= virtualStartPos, task="down")
-            
+            elif ie_globals.current_tool == 'dropper':
+                ie_globals.pen_color= self.picOrg.pixelColor(virtualStartPos)
+                ie_globals.pen.setColor(ie_globals.pen_color)
+                ie_globals.current_tool=ie_globals.previous_tool
+                
+
             self.pic1_update()
         elif event.button() == Qt.MouseButton.MiddleButton:
-            ie_globals.current_tool='pan'
+            self.panning = True
             self.startPos = event.globalPos()
             self.docStartPos = self.widgetPicture1.pos()
 
 #endregion
-#region mouse move [rgba(255, 152, 121,0.3)]
+
+#region mouse move [rgba(255, 152, 121,0.1)]
     def pic1_mouseMoveEvent(self, event: QMouseEvent) -> None:
         eventstr: str = "move"
 
@@ -139,7 +161,7 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
                 math.trunc(event.pos().x() / self.zoomFactor),
                 math.trunc(event.pos().y() / self.zoomFactor)
             )
-            ie_globals.statusText[1]= "Mouse Position: " + str(virtualpos.x()) + ", " + str(virtualpos.y())
+            ie_globals.statusText.pos= "Mouse Position: " + str(virtualpos.x()) + ", " + str(virtualpos.y())
            
             if ie_globals.current_tool == 'pen':
                 ie_globals.pen.setCapStyle(Qt.PenCapStyle.RoundCap)
@@ -156,6 +178,9 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
             elif ie_globals.current_tool == 'rect':
                 self.picOrg = self.pic2.copy()
                 ie_tools.draw_rect(self.picOrg, virtualStartPos, virtualpos, eventstr)
+            elif ie_globals.current_tool == 'round_rect':
+                self.picOrg = self.pic2.copy()
+                ie_tools.draw_round_rect(self.picOrg, virtualStartPos, virtualpos, eventstr, corner_radius=ie_globals.round_rect_corner_radius)
             elif ie_globals.current_tool == 'spray':
                 ie_tools.draw_spray(self.picOrg, virtualpos,eventstr)
             elif ie_globals.current_tool == 'pan':
@@ -168,7 +193,7 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
             # update
             self.pic1_update()
 
-        elif event.buttons() == Qt.MouseButton.MiddleButton:
+        elif event.buttons() == Qt.MouseButton.MiddleButton and self.panning:
             deltaX = event.globalPos().x() - self.startPos.x()
             deltaY = event.globalPos().y() - self.startPos.y()
             #self.widgetPicture1.move(self.docStartPos.x() + deltaX, self.docStartPos.y() + deltaY)
@@ -177,6 +202,8 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
             self.startPos = event.globalPos()
 
 #endregion
+
+#region mouse release [rgba(255, 255, 121,0.1)]
     def pic1_mouseReleaseEvent(self, event: QMouseEvent) -> None:
         eventstr: str = "up"
         if event.button() == Qt.MouseButton.LeftButton:
@@ -187,9 +214,10 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
             self.undo_index = len(self.undoList) - 1
             #print(self.undo_index, len(self.undoList))
         elif event.button() == Qt.MouseButton.MiddleButton:
-            if ie_globals.current_tool == 'pan':
-                ie_globals.current_tool='pen'
-
+            self.panning = False
+#endregion
+    
+    
     def undoImage(self) -> None:
         
         if self.undo_index > -1:
@@ -214,7 +242,7 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
    #region paint [rgba(125, 152, 200,0.1)]
     #picture 1 view update from original image
     def pic1_update(self) -> None:
-        ie_globals.statusText[2] = "Zoom: " + str(self.zoomFactor)
+        ie_globals.statusText.zoom = "Zoom: " + str(self.zoomFactor)
         w=self.picOrg.width()*self.zoomFactor
         h=self.picOrg.height()*self.zoomFactor
         self.widgetPicture1.setFixedSize(w, h)

@@ -8,6 +8,7 @@ Pan
   orta butonla pan moduna girsin
   move ile slider değeri değişsin
   butonu bırakınca öyle kalsın
+Fikir: Recolor , target color ile renklerin değişmesini sağlayın
 Fikir: Renklerde Cyclic özelliği eklenebilir. Spray güzel durur
 Fikir: Ayna ile çizim
 Şekiller , yıldız, üçgen , yuvarlak  dikdörtgen, ay, elips,ok falan
