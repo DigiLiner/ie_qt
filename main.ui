@@ -925,6 +925,12 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="dwColorBox">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="windowIcon">
     <iconset resource="svgicons.qrc">
      <normaloff>:/toolbar/svgicons/colorbox.svg</normaloff>:/toolbar/svgicons/colorbox.svg</iconset>

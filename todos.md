@@ -18,7 +18,6 @@ move tools
 rotate tools
 png brush
 Fix:
-  dikdörtgen, daire renk ve dolguları uyumsuz
   pen line cap falan
 
 

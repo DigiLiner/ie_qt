@@ -461,24 +461,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         ie_globals.brush.setColor(color)
         ie_globals.pencolor = color
         ie_globals.brushcolor = color
+    
+    
+        self.focusInEvent= self.focusInEvent
+        self.focusOutEvent= self.focusOutEvent
+        self.repaint()
+    def focusInEvent(self, event):
+        self.setFocus()
+        self.repaint()
+    def focusOutEvent(self, event):
+        self.setFocus()
+        self.repaint()
+
 
     def paintEvent(self, event):
-        
-        try:
-            main_geometry = self.geometry()
-            float_geometry = float_window.geometry()
-
-            float_geometry.setLeft(main_geometry.right() - float_geometry.width()-150)
-            float_geometry.setTop(main_geometry.top())
-            float_geometry.setHeight(60)
-            float_geometry.setWidth(150)
-            float_window.setGeometry(float_geometry)
-
-        except AttributeError as e:
-            print(f"An error occurred while setting the geometry of the float window: {e}")
-
-      
-
         ie_globals.statusText.tool= "Tool: "+ str(ie_globals.current_tool)
         self.statusLabel.setText("  "+ str(ie_globals.statusText.tool) +" "+ str(ie_globals.statusText.pos))
         float_window.repaint()
@@ -488,6 +484,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #painter.setBrush(QBrush(QColor(180, 180, 180)))
         painter.setBrush(ie_globals.pen.color())
         painter.drawRoundedRect(self.rect().right()-100, 5, 20, 20, 2, 2)
+
+        if not self.isTopLevel() or self.isMinimized():
+            float_window.hide()
+            return
+
+        try:
+            main_geometry = self.geometry()
+            float_geometry = float_window.geometry()
+
+            float_geometry.setLeft(main_geometry.right() - float_geometry.width()-150)
+            float_geometry.setTop(main_geometry.top())
+            float_geometry.setHeight(60)
+            float_geometry.setWidth(150)
+            # Only show float window when properly positioned
+            float_window.setGeometry(float_geometry)
+            if not float_window.isVisible():
+                float_window.show()
+
+        except AttributeError as e:
+            print(f"An error occurred while setting the geometry of the float window: {e}")
 
         #pass
         #örnek painter
@@ -507,6 +523,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 #endregion
         self.moveEvent= self.moveEvent
+        
 
     def moveEvent(self, event):
         self.repaint()
