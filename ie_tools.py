@@ -223,7 +223,7 @@ def fill(img1: PySide6.QtGui.QImage, pt1: QPoint, task: str,tolerance:int=100) -
         painter = PySide6.QtGui.QPainter(img1)
         print("Fill")
 
-        temp_pen = ie_globals.pen.__copy__()
+        temp_pen = ie_globals.pen ## todo: dikkat
         temp_pen.setWidth(1)  # important
         painter.setPen(temp_pen)
 

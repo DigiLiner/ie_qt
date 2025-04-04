@@ -1,8 +1,0 @@
-﻿<?xml version='1.0' encoding='UTF-8'?>
-<svg viewBox="-2.0025 -2.0025 32 32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <g transform="translate(-1.9116, -1.9116)">
-    <g transform="matrix(0.0636360123753548, 0, 0, 0.0636360123753548, 0, 0)">
-      <line x1="50" y1="450" x2="450" y2="50" transform="matrix(-1, 0, 0, -1, 500, 500)" stroke="#000000" stroke-width="40px" stroke-linecap="round" />
-    </g>
-  </g>
-</svg>

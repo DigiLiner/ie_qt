@@ -6,7 +6,6 @@ import sys
 import PySide6
 from PySide6 import QtWidgets, QtCore, QtGui
 from PySide6.QtCore import QPoint, QPointF
-from PySide6.QtGui import QPen, QColor, QBrush, Qt, QImage, QPainter, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QLabel, QHBoxLayout, QScrollArea, \
     QGridLayout, QWidget
 from PySide6.QtWidgets import QFrame

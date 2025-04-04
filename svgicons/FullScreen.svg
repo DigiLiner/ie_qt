@@ -1,5 +1,5 @@
 ﻿<?xml version='1.0' encoding='UTF-8'?>
-<svg viewBox="-2 -2 32 32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg viewBox="-2 -2 32 32" xmlns="http://www.w3.org/2000/svg" >
   <g id="Layer_1" transform="translate(-2, -2)" style="enable-background:new 0 0 32 32">
     <g id="FullScreen">
       <polygon points="2,12 6,12 6,6 12,6 12,2 2,2  " fill="#727272" class="Black" />

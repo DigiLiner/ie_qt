@@ -1,5 +1,5 @@
 ﻿<?xml version='1.0' encoding='UTF-8'?>
-<svg viewBox="-2 -2 32 32" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg viewBox="-2 -2 32 32" xmlns="http://www.w3.org/2000/svg" >
   <g id="Layer_1" transform="translate(-2, -2)" style="enable-background:new 0 0 32 32">
     <g id="Calendar">
       <path d="M29, 4L26, 4L26, 7C26, 7.5 25.5, 8 25, 8L21, 8C20.5, 8 20, 7.5 20, 7L20, 4L12, 4L12, 7C12, 7.5 11.5, 8 11, 8L7, 8C6.5, 8 6, 7.5 6, 7L6, 4L3, 4C2.4, 4 2, 4.4 2, 5L2, 10L30, 10L30, 5C30, 4.4 29.6, 4 29, 4z" fill="#D11C1C" class="Red" />

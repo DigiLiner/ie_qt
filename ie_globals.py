@@ -5,7 +5,7 @@ import PySide6.QtCore
 import PySide6.QtWidgets
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPen, QColor, QBrush, Qt, QImage, QPainter, QMouseEvent, QPixmap
+from PySide6.QtGui import QPen, QColor, QBrush, QImage, QPainter, QMouseEvent, QPixmap
 
 # Default pen and brush
 pen :PySide6.QtGui.QPen = PySide6.QtGui.QPen()
@@ -86,10 +86,12 @@ brush.setStyle(PySide6.QtCore.Qt.BrushStyle.NoBrush)
 class Layer:
     def __init__(self, name:str, visible:bool=True, opacity:int=100, image:PySide6.QtGui.QImage=None, rasterized:bool=True,locked:bool=False):
         self.name = name
+        self.active=False
         self.visible = visible
         self.opacity = opacity
         self.image = image
         self.rasterized = rasterized
         self.locked = locked
+        self.id=0
 
 

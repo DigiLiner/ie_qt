@@ -22,33 +22,44 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="25.21875"
      inkscape:cx="16"
-     inkscape:cy="16"
+     inkscape:cy="12.768278"
      inkscape:window-width="1920"
-     inkscape:window-height="1009"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:window-height="996"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg2" />
+     inkscape:current-layer="g2"
+     showgrid="true">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="5"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
   <g
      id="Capa_1"
-     transform="translate(0, 0)"
-     style="enable-background:new 0 0 29.107 29.107;stroke:none;stroke-opacity:1;fill:#727272;fill-opacity:1">
+     transform="matrix(0.92887419,0,0,0.92012721,0.99195841,1.0770303)"
+     style="fill:#727272;fill-opacity:1;stroke:none;stroke-opacity:1;stroke-width:0.99946959;stroke-dasharray:none">
     <g
-       transform="matrix(0.961951792240143, 0, 0, 0.961951792240143, 0, 0)"
+       transform="scale(0.96195179)"
        id="g2"
-       style="stroke:none;stroke-opacity:1;fill:#727272;fill-opacity:1">
-      <g
-         id="g1"
-         style="stroke:none;stroke-opacity:1;fill:#727272;fill-opacity:1">
-        <g
-           id="c149_moon"
-           style="stroke:none;stroke-opacity:1;fill:#727272;fill-opacity:1">
-          <path
-             d="M14.558, 2.079C21.435, 2.079 27.029, 7.676 27.029, 14.552C27.029, 21.429 21.435, 27.028 14.558, 27.028C7.679, 27.028 2.08, 21.429 2.08, 14.552C2.08, 7.676 7.679, 2.079 14.558, 2.079M14.558, 0C6.563, 0 0, 6.562 0, 14.552C0, 22.547 6.563, 29.107 14.558, 29.107C22.553, 29.107 29.107, 22.547 29.107, 14.552C29.106, 6.562 22.552, 0 14.558, 0L14.558, 0z"
-             id="_x3C_Compound_Path_x3E__7_"
-             style="stroke:none;stroke-opacity:1;fill:#727272;fill-opacity:1" />
-        </g>
-      </g>
+       style="fill:#727272;fill-opacity:1;stroke:none;stroke-opacity:1;stroke-width:1.03900175;stroke-dasharray:none">
+      <ellipse
+         style="fill:none;fill-rule:evenodd;stroke:#727272;stroke-width:3.33522;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+         id="path1"
+         cx="14.557998"
+         cy="14.600277"
+         rx="12.881395"
+         ry="13.019702" />
     </g>
   </g>
 </svg>

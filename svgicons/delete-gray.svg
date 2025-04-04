@@ -20,28 +20,45 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="25.21875"
-     inkscape:cx="16"
-     inkscape:cy="16"
+     inkscape:zoom="17.832349"
+     inkscape:cx="22.963884"
+     inkscape:cy="16.655125"
      inkscape:window-width="1920"
-     inkscape:window-height="1009"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:window-height="996"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg1" />
+     inkscape:current-layer="svg1"
+     showgrid="true">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="5"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
   <g
      id="Layer_1"
-     transform="translate(-4.66667329711914, -4.66667329711914)"
-     style="enable-background:new 0 0 24 24;fill:#727272;fill-opacity:1;stroke:none;stroke-opacity:1">
+     transform="matrix(0.85714166,0,0,0.85714168,-1.9999999,-2)"
+     style="fill:#727272;fill-opacity:1;stroke:none;stroke-opacity:1">
     <g
-       transform="matrix(1.55555772781372, 0, 0, 1.55555772781372, 0, 0)"
+       transform="scale(1.5555577)"
        id="g1"
        style="fill:#727272;fill-opacity:1;stroke:none;stroke-opacity:1">
       <polygon
-         points="21,5 19,3 12,10 5,3 3,5 10,12 3,19 5,21 12,14 19,21 21,19 14,12 "
+         points="3,19 5,21 12,14 19,21 21,19 14,12 21,5 19,3 12,10 5,3 3,5 10,12 "
          class="dx_gray"
          id="polygon1"
-         style="fill:#727272;fill-opacity:1;stroke:none;stroke-opacity:1" />
+         style="fill:#727272;fill-opacity:1;stroke:none;stroke-opacity:1;stroke-width:0.75;stroke-dasharray:none;stroke-linecap:round;paint-order:stroke fill markers;vector-effect:non-scaling-stroke;-inkscape-stroke:hairline"
+         inkscape:label="polygon1" />
     </g>
   </g>
 </svg>
