@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('svgicons', 'svgicons'), ('pngicons', 'pngicons')],
+    datas=[('svgicons', 'svgicons'), ('pngicons', 'pngicons'), ('textures', 'textures')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
