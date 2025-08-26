@@ -1,0 +1,1 @@
+pyinstaller   --name hcie2.9.1-alpha main.py    --exclude PyQt6 --onefile --windowed --icon=icon.ico

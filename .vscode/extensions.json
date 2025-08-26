@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "aungkhantm.pyside6-ui2py",
+        "ms-python.vscode-pylance",
+        "ledyba.launch-buttons",
+        "seanwu.vscode-qt-for-python",
+        "mihelcic.colored-regions",
+        "ms-python.mypy-type-checker"
+    ]
+}
