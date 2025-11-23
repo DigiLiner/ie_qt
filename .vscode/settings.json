@@ -1,5 +1,6 @@
 {
     "mssql.connections": [
         
-    ]
+    ],
+    "geminicodeassist.agentYoloMode": true
 }

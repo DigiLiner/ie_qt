@@ -58,11 +58,11 @@ Pen köşeli çiziyor
 
 # FUNCTIONALITIES
 - [x] basic drawing functionality -ok
-- [ ] undo/redo functionality 
-- [ ] zoom in/out functionality
+- [x] undo/redo functionality 
+- [x] zoom in/out functionality
 - [ ] import/export functionality
 - [ ] multiple layers functionality
-- [ ] multiple documents functionality
+- [x] multiple documents functionality
 - [ ] multiple users functionality
 - [ ] real-time collaboration functionality
 - [ ] image filters functionality
@@ -82,18 +82,20 @@ Pen köşeli çiziyor
 
 - [x] line tool -ok
 - [ ] brush tool
-- [ ] eraser tool
-- [ ] fill tool
-- [ ] spray tool - needsoptimize
-- [ ] circle tool
-- [ ] rectangle tool
+- [x] eraser tool
+- [x] fill tool
+- [x] spray tool - needsoptimize
+- [x] circle tool
+- [x] rectangle tool
 - [ ] polyline tool
 - [ ] select tool
+- [x] wand tool
 - [ ] circular select tool
 - [ ] move tool
 - [ ] rotate tool
 - [ ] scale tool
 - [ ] text tool
+- [x] color picker
 
 
 # FILTERS
@@ -129,7 +131,7 @@ Pen köşeli çiziyor
 - [ ] hue tool
 
 # COLOR PALETTE
-- [ ] color picker tool
+- [x] color picker tool
 - [ ] color palette tool
 
 # LAYERS
@@ -139,11 +141,32 @@ Pen köşeli çiziyor
 - [ ] layer blend tool
 
 # FILE
-- [ ] open file tool
-- [ ] save file tool
+- [ ] open file
+- [ ] save file
 
 # HELP
 - [ ] about tool
 - [ ] help tool
 
+2025
+Here's a list of potential missing features, tools, and filters:
 
+1. Core Image Manipulation / Filters: * Color Adjustments: Brightness/Contrast, Hue/Saturation, Color Balance, Levels, Curves. * Image Filters: Blur/Sharpen (Gaussian, Motion, Unsharp Mask), Artistic (Oil Paint, Watercolor, Pixelate), Distort (Twirl, Pinch, Wave), Noise (Add, Reduce), Stylize (Find Edges, Solarize). * Transformations: Arbitrary Rotate, Resize/Scale, Perspective/Skew. * Image Adjustments: Grayscale, Sepia, Invert Colors.
+
+2. Drawing/Painting Tools: * Brush Customization: Advanced brush shapes, textures, dynamics (flow, jitter). * Gradient Tool. * Text Tool. * Shape Tools: Polygon, Star, Custom Shapes. * Retouching Tools: Clone Stamp, Healing Brush, Dodge/Burn.
+
+3. Selection Tools: * Lasso Tools: Freehand, Polygonal, Magnetic. * Color Range Selection. * Quick Selection Tool. * Refine Edge/Masking.
+
+4. Layer Management: * Layer Opacity/Blending Modes. * Layer Grouping, Masks, Adjustment Layers, Styles/Effects. * Rasterize, Merge, Duplicate, Delete, Reorder Layers.
+
+5. UI/UX Enhancements: * Advanced Color Picker Dialog. * History Panel. * Dedicated Tool Options Panel. * Grid/Guides, Rulers. * Zoom to Fit/Actual Pixels. * Comprehensive Keyboard Shortcuts. * Preferences/Settings Dialog.
+
+6. File Formats: * Support for more image file formats (e.g., TIFF, BMP).
+
+7. Performance: * Optimization for large images and complex operations.
+
+Specific to current code:
+
+ie_globals.pen_opacity and ie_globals.pen_blur sliders are not implemented.
+The rotate function in main.py is empty.
+The ie_tool_crop is defined but its functionality is not implemented.

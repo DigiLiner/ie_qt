@@ -5,6 +5,7 @@
         "ledyba.launch-buttons",
         "seanwu.vscode-qt-for-python",
         "mihelcic.colored-regions",
-        "ms-python.mypy-type-checker"
+        "ms-python.mypy-type-checker",
+        "google.geminicodeassist"
     ]
 }
