@@ -11,6 +11,10 @@ simgeler qrc dosyasında olursa eklemeye gerek kalmıyor.
 C:\Users\dx\AppData\Local\Temp\_MEI236602
 pyinstaller    main.py    --exclude PyQt6 --onefile --windowed
 pyinstaller   --name hcie2.9.1-alpha main.py    --exclude PyQt6 --onefile --windowed --icon=icon.ico
+2025-11
+
+pyinstaller --name hcie2.9.1-alpha main.py --add-data "resources:resources" .\main.py  --windowed  --exclude PyQt6 --onefile --icon=icon.ico
+
 
 PYQT5 UI
 sudo apt install pyqt6-dev-tools

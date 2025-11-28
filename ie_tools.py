@@ -3,7 +3,7 @@ import random
 from collections import deque
 from typing import Set,Tuple, Callable
 
-from PySide6.QtGui import QImage, QPixmap, QPainter, QColor, QPen , QRadialGradient, QBrush
+from PySide6.QtGui import QImage, QPixmap, QPainter, QColor, QPen , QRadialGradient, QBrush, QPolygon
 from PySide6.QtCore import QPoint, QRect, Qt
 import ie_globals
 import PySide6.QtCore
@@ -86,6 +86,205 @@ def draw_line(img1: QImage, pt1: QPoint, pt2: QPoint, task: str):
     elif task == "move":
         painter.drawLine(pt1, pt2)
 
+    painter.end()
+
+
+def draw_brush(img: QImage, pos: QPoint, angle: float = 0.0):
+    """
+    Draws a brush stamp based on the current global settings.
+    Acts as a dispatcher to different brush functions.
+    """
+    if ie_globals.brush_mode == "solid":
+        if ie_globals.brush_shape == "circle":
+            draw_circular_brush(img, pos, angle)
+        elif ie_globals.brush_shape == "square":
+            draw_square_brush(img, pos, angle)
+        elif ie_globals.brush_shape == "star":
+            draw_star_brush(img, pos, angle)
+        elif ie_globals.brush_shape == "cylinder":
+            draw_cylinder_brush(img, pos, angle)
+    elif ie_globals.brush_mode == "image" and ie_globals.brush_image:
+        draw_image_brush(img, pos, angle)
+    elif ie_globals.brush_mode == "pattern" and ie_globals.pattern_image:
+        draw_pattern_brush(img, pos)
+
+def draw_circular_brush(img: QImage, pos: QPoint, angle: float = 0.0):
+    """
+    Draws a single circular brush stamp on the image at the given position.
+    Handles size, hardness, and rotation.
+    """
+    painter = QPainter(img)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    size = ie_globals.brush_size
+    hardness = ie_globals.brush_hardness / 100.0
+    color = ie_globals.current_pen.color()
+    
+    painter.save()
+    painter.translate(pos)
+    painter.rotate(angle)
+    
+    rect = QRect(-size // 2, -size // 2, size, size)
+    
+    gradient = QRadialGradient(QPoint(0,0), size / 2)
+    
+    center_color = QColor(color)
+    edge_color = QColor(color)
+    edge_color.setAlpha(0)
+    
+    gradient.setColorAt(0, center_color)
+    gradient.setColorAt(hardness, center_color)
+    gradient.setColorAt(1.0, edge_color)
+    
+    painter.setBrush(QBrush(gradient))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawEllipse(rect)
+    
+    painter.restore()
+    painter.end()
+
+def draw_square_brush(img: QImage, pos: QPoint, angle: float = 0.0):
+    """
+    Draws a single square brush stamp on the image at the given position.
+    Handles size, hardness, and rotation.
+    """
+    painter = QPainter(img)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    size = ie_globals.brush_size
+    hardness = ie_globals.brush_hardness / 100.0
+    color = ie_globals.current_pen.color()
+    
+    painter.save()
+    painter.translate(pos)
+    painter.rotate(angle)
+    
+    rect = QRect(-size // 2, -size // 2, size, size)
+    
+    if hardness >= 0.99:
+        painter.setBrush(QBrush(color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRect(rect)
+    else:
+        gradient = QRadialGradient(QPoint(0,0), size / 2)
+        
+        center_color = QColor(color)
+        edge_color = QColor(color)
+        edge_color.setAlpha(0)
+        
+        gradient.setColorAt(0, center_color)
+        gradient.setColorAt(hardness, center_color)
+        gradient.setColorAt(1.0, edge_color)
+        
+        painter.setBrush(QBrush(gradient))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRect(rect)
+        
+    painter.restore()
+    painter.end()
+
+def draw_star_brush(img: QImage, pos: QPoint, angle: float = 0.0):
+    """
+    Draws a star-shaped brush stamp.
+    """
+    painter = QPainter(img)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    size = ie_globals.brush_size
+    color = ie_globals.current_pen.color()
+    num_points = 5 # Example: 5-pointed star
+    
+    painter.save()
+    painter.translate(pos)
+    painter.rotate(angle)
+    
+    polygon = QPolygon()
+    for i in range(num_points * 2):
+        radius = size // 2 if i % 2 == 0 else size // 4
+        theta = i * (360 / (num_points * 2)) - 90
+        point = QPoint(radius * math.cos(math.radians(theta)), radius * math.sin(math.radians(theta)))
+        polygon.append(point)
+        
+    painter.setBrush(QBrush(color))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawPolygon(polygon)
+    
+    painter.restore()
+    painter.end()
+
+def draw_cylinder_brush(img: QImage, pos: QPoint, angle: float = 0.0):
+    """
+    Draws a cylinder (ellipse) shaped brush stamp.
+    """
+    painter = QPainter(img)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    size = ie_globals.brush_size
+    color = ie_globals.current_pen.color()
+    
+    painter.save()
+    painter.translate(pos)
+    painter.rotate(angle)
+    
+    # Make it an ellipse, for example, width is half of the height
+    rect = QRect(-size // 4, -size // 2, size // 2, size)
+    
+    painter.setBrush(QBrush(color))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawEllipse(rect)
+    
+    painter.restore()
+    painter.end()
+
+
+def draw_image_brush(img: QImage, pos: QPoint, angle: float = 0.0):
+    """
+    Draws an image as a brush stamp with rotation.
+    """
+    if not ie_globals.brush_image:
+        return
+        
+    painter = QPainter(img)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    
+    brush_img = ie_globals.brush_image
+    size = ie_globals.brush_size
+    
+    scaled_brush_img = brush_img.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+    
+    painter.save()
+    painter.translate(pos)
+    painter.rotate(angle)
+    
+    top_left = QPoint(-scaled_brush_img.width() // 2, -scaled_brush_img.height() // 2)
+    
+    painter.drawImage(top_left, scaled_brush_img)
+    painter.restore()
+    painter.end()
+
+def draw_pattern_brush(img: QImage, pos: QPoint):
+    """
+    Paints with a tiled pattern.
+    """
+    if not ie_globals.pattern_image:
+        return
+        
+    painter = QPainter(img)
+    
+    size = ie_globals.brush_size
+    
+    # Create a brush from the pattern image
+    pattern_brush = QBrush(ie_globals.pattern_image)
+    painter.setBrush(pattern_brush)
+    painter.setPen(Qt.PenStyle.NoPen)
+    
+    # Draw a shape (e.g., a circle or square) filled with the pattern
+    if ie_globals.brush_shape == "circle":
+        painter.drawEllipse(pos, size // 2, size // 2)
+    elif ie_globals.brush_shape == "square":
+        rect = QRect(pos.x() - size // 2, pos.y() - size // 2, size, size)
+        painter.drawRect(rect)
+        
     painter.end()
 
 

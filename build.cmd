@@ -1,1 +1,2 @@
-pyinstaller   --name hcie2.9.1-alpha main.py    --exclude PyQt6 --onefile --windowed --icon=icon.ico
+REM pyinstaller   --name hcie2.9.1-alpha main.py    --exclude PyQt6 --onefile --windowed --icon=icon.ico
+pyinstaller --name hcie2.9.1-alpha main.py --add-data "resources:resources"  --windowed  --exclude PyQt6 --onefile --icon=icon.ico

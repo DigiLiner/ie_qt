@@ -5,12 +5,53 @@ import PySide6
 from PySide6 import QtCore, QtGui
 from PySide6.QtCore import QPoint, QPointF, Qt, QRect
 from PySide6.QtGui import QPen, QColor, QBrush, QImage, QPainter, QMouseEvent, QPixmap, QPaintEvent
-from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QWidget
-from PySide6.QtWidgets import QFrame
+from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QWidget, QDialog, QVBoxLayout, \
+    QLabel, QSlider, QPushButton
 import ie_tools
 import draw_window_ui
 import ie_globals
 from ie_functions import melt_image, shear_image, blur_image, mosaic_image
+
+
+class BrushSettingsDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Brush Settings")
+        layout = QVBoxLayout(self)
+
+        # Brush Size
+        self.size_label = QLabel(f"Brush Size: {ie_globals.brush_size}")
+        layout.addWidget(self.size_label)
+        self.size_slider = QSlider(Qt.Orientation.Horizontal)
+        self.size_slider.setRange(10, 300)
+        self.size_slider.setValue(ie_globals.brush_size)
+        self.size_slider.valueChanged.connect(self.update_brush_size)
+        layout.addWidget(self.size_slider)
+
+        # Brush Hardness
+        self.hardness_label = QLabel(f"Brush Hardness: {ie_globals.brush_hardness}")
+        layout.addWidget(self.hardness_label)
+        self.hardness_slider = QSlider(Qt.Orientation.Horizontal)
+        self.hardness_slider.setRange(0, 100)
+        self.hardness_slider.setValue(ie_globals.brush_hardness)
+        self.hardness_slider.valueChanged.connect(self.update_brush_hardness)
+        layout.addWidget(self.hardness_slider)
+
+        # OK Button
+        self.ok_button = QPushButton("OK")
+        self.ok_button.clicked.connect(self.accept)
+        layout.addWidget(self.ok_button)
+
+    def update_brush_size(self, value):
+        ie_globals.brush_size = value
+        ie_globals.current_pen.setWidth(value)
+        self.size_label.setText(f"Brush Size: {value}")
+        ie_globals.save_settings()
+
+    def update_brush_hardness(self, value):
+        ie_globals.brush_hardness = value
+        self.hardness_label.setText(f"Brush Hardness: {value}")
+        ie_globals.save_settings()
 
 
 class Editor(draw_window_ui.Ui_Form, QWidget):
@@ -107,6 +148,10 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         The current index in the `undoList` and `undoLayerList`, pointing to the present state of the image.
         '''
         self.appendUndoImage()  # add original image to undo list
+
+    def open_brush_settings(self):
+        dialog = BrushSettingsDialog(self)
+        dialog.exec()
 
     ##region mouse wheel [rgba(222, 100, 222,0.1)]
     def pic1_mouseWheelEvent(self, event: QtGui.QWheelEvent) -> None:
@@ -215,6 +260,9 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
             if ie_globals.current_tool == ie_globals.ie_tool_pen:
                 ie_tools.draw_line(self.picOrg, virtualStartPos, virtualStartPos, eventstr)
                 self.startPos = event.pos()
+            elif ie_globals.current_tool == ie_globals.ie_tool_brush:
+                ie_tools.draw_brush(self.picOrg, virtualStartPos)
+                self.lastPos = event.pos()
             elif ie_globals.current_tool == ie_globals.ie_tool_fill:
                 ie_tools.fill(img1=self.picOrg, pt1=virtualStartPos, task="down", tolerance=ie_globals.fill_tolerance)
             elif ie_globals.current_tool == ie_globals.ie_tool_wand:
@@ -262,6 +310,43 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
                 ie_globals.current_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                 ie_tools.draw_line(self.picOrg, virtualStartPos, virtualpos, eventstr)
                 self.startPos = event.pos()
+            
+            elif ie_globals.current_tool == ie_globals.ie_tool_brush:
+                start_point = self.lastPos
+                end_point = event.pos()
+                
+                dist = math.hypot(end_point.x() - start_point.x(), end_point.y() - start_point.y())
+                
+                size = ie_globals.brush_size
+                density = ie_globals.brush_density / 100.0
+                
+                if density <= 0: density = 0.01
+                spacing = size / (density * 10)
+                if spacing < 1: spacing = 1
+                
+                num_steps = max(1, int(dist / spacing))
+
+                # Calculate angle
+                angle = 0.0
+                if ie_globals.brush_dynamic_angle:
+                    dx = end_point.x() - start_point.x()
+                    dy = end_point.y() - start_point.y()
+                    if dx != 0 or dy != 0:
+                        angle = math.degrees(math.atan2(dy, dx))
+
+                for i in range(num_steps):
+                    t = i / float(num_steps)
+                    x = start_point.x() * (1.0 - t) + end_point.x() * t
+                    y = start_point.y() * (1.0 - t) + end_point.y() * t
+                    
+                    brush_pos = QPoint(int(x), int(y))
+                    
+                    virtual_brush_pos = QPoint(
+                        math.trunc(brush_pos.x() / self.zoomFactor),
+                        math.trunc(brush_pos.y() / self.zoomFactor)
+                    )
+                    
+                    ie_tools.draw_brush(self.picOrg, virtual_brush_pos, angle)
 
             elif ie_globals.current_tool == ie_globals.ie_tool_line:
                 self.picOrg = self.pic2.copy()
@@ -282,10 +367,6 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
             elif ie_globals.current_tool == ie_globals.ie_tool_spray:
                 ie_tools.draw_spray(self.picOrg, virtualpos, eventstr)
             elif ie_globals.current_tool == ie_globals.ie_tool_pan:
-                # deltaX = event.x() - self.startPos.x()
-                # deltaY = event.y() - self.startPos.y()
-                # self.widgetPicture1.move(self.widgetPicture1.x() + deltaX, self.widgetPicture1.y() + deltaY)
-                # self.startPos = event.pos()
                 pass
             elif ie_globals.current_tool == ie_globals.ie_tool_eraser:
                 virtualpos: QPoint = QPoint(
@@ -301,7 +382,6 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         elif event.buttons() == Qt.MouseButton.MiddleButton and self.panning:
             deltaX = int(event.globalPosition().x() - self.startPos.x())
             deltaY = int(event.globalPosition().y() - self.startPos.y())
-            #self.widgetPicture1.move(self.docStartPos.x() + deltaX, self.docStartPos.y() + deltaY)
             self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().value() - deltaY)
             self.scrollArea.horizontalScrollBar().setValue(self.scrollArea.horizontalScrollBar().value() - deltaX)
             self.startPos = event.globalPosition().toPoint()

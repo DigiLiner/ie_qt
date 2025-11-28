@@ -4,7 +4,7 @@ import PySide6.QtGui
 import PySide6.QtCore
 import PySide6.QtWidgets
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSettings
 from PySide6.QtGui import QPen, QColor, QBrush, QImage, QPainter, QMouseEvent, QPixmap
 import main_ui as iemain
 import main_ui as main_ui
@@ -279,228 +279,83 @@ allowing for easy iteration and management of tools.
 # Default pen and brush
 current_pen :PySide6.QtGui.QPen = PySide6.QtGui.QPen()
 '''
-The currently active QPen object used for drawing operations.
-Its properties (color, width, style, etc.) are dynamically set
-through the application's UI, such as color boxes and property sliders.
+The currently active QPen object for drawing operations.
 '''
 current_brush:PySide6.QtGui.QBrush = PySide6.QtGui.QBrush()
 '''
-The currently active QBrush object used for filling shapes and areas.
-Its properties are dynamically set through the application's UI.
+The currently active QBrush object for filling shapes.
 '''
 current_pen.setColor (QColor(0,0,0))
-'''
-The current color of the pen, represented as a QColor object.
-Initialized to black (RGB: 0,0,0).
-'''
-current_pen.setWidth(15)
-'''
-The current width of the pen stroke in pixels.
-'''
-current_pen.color().setAlpha(1)
-'''
-The opacity of the pen, ranging from 0 (fully transparent) to 1 (fully opaque).
-'''
 
-#todo blur
+current_pen.color().setAlpha(1)
+
 pen_blur: int = 1
 '''
-The blur radius applied to the pen stroke.
+The blur radius for the pen.
 '''
 
 current_pen.setStyle(Qt.PenStyle.SolidLine)
-'''
-The style of the pen line, e.g., "solid", "dashed", "dotted".
-'''
 current_pen.setCapStyle (Qt.PenCapStyle.RoundCap)
-'''
-The style of the pen cap, e.g., "round", "square", "flat".
-'''
 current_pen.setJoinStyle (Qt.PenJoinStyle.RoundJoin)
-'''
-The style of the pen join, e.g., "round", "bevel", "miter".
-'''
-
 current_pen.setCosmetic(True)
 
 current_brush.setColor(PySide6.QtGui.QColor(QColor(255,255,255,0)))
 current_brush.setStyle(PySide6.QtCore.Qt.BrushStyle.NoBrush)
 current_brush.setStyle(PySide6.QtCore.Qt.BrushStyle.TexturePattern)
 
-# Pen and Brush properties set glabally in mainwindow
-# with using colorbox and property sliders
-
-#todo app wide options only
-#current tool for drawing string= line, circle, rect, pen, brush, spray, fill
 current_tool:ie_tool = ie_tool_pen
 '''
-The currently selected drawing tool, represented by an `ie_tool` object.
-This variable dictates which drawing or editing action is active.
+The currently selected drawing tool.
 '''
 previous_tool:ie_tool = ie_tool_pen
 '''
-Stores the previously selected drawing tool, represented by an `ie_tool` object.
-Useful for quickly switching back to the last used tool.
+The previously selected drawing tool.
 '''
 
-
-
-
-#color of brush
 brush_color = "blue"
-'''
-The current color of the brush, represented as a string (e.g., "blue").
-'''
 brush_blur:int = 2
-'''
-The blur radius applied to the brush stroke.
-'''
 spray_radius = 50
-'''
-The radius of the circle for the spray tool, defining the area of effect.
-'''
 spray_density = 100
-'''
-The density of the spray tool, controlling how many "spray" particles are applied within the radius.
-'''
 
-#Zoom factor for zoom in/ou
 zoomInFactor:float = 1.25
-'''
-The factor by which the canvas zoom level increases during a zoom-in operation.
-'''
 zoomOutFactor:float= 1/1.25
-'''
-The factor by which the canvas zoom level decreases during a zoom-out operation.
-Calculated as the inverse of `zoomInFactor`.
-'''
 
-#Image width of original canvas
 image_width:int =1000
-'''
-The default width of the image canvas in pixels.
-'''
 image_height:int = 800
-'''
-The default height of the image canvas in pixels.
-'''
 image_bg_color = "white"
-'''
-The default background color of the image canvas.
-'''
 zooming:bool = False
-'''
-A boolean flag indicating whether a zoom operation is currently active.
-'''
 tool_icon_size = "24px"
-'''
-The preferred size for tool icons, specified as a string (e.g., "24px").
-'''
 filenamecounter = 1
-'''
-A counter used for generating default filenames for new images or saves.
-'''
 
 fill_tolerance:float = 1.0
-'''
-The tolerance level for the flood fill tool, ranging from 0.0 to 1.0.
-A higher tolerance allows the fill to spread to colors that are less similar to the target color.
-'''
 
-#max undo steps
 max_undo_steps = 20
-'''
-The maximum number of undoable actions stored in the history stack.
-'''
 
-# Seçim için yeni global değişkenler
+# Selection globals
 current_selection: set = set()
-'''
-A set storing the pixel coordinates (e.g., as tuples (x, y)) that are currently selected.
-'''
 selection_bounds: PySide6.QtCore.QRect = PySide6.QtCore.QRect()
-'''
-A QRect object representing the bounding box of the current selection.
-'''
-selection_edge_pixels: set = set()  # Kenar pikselleri
-'''
-A set storing the pixel coordinates that form the edge of the current selection.
-These pixels are typically used for rendering the selection outline.
-'''
-has_selection: bool = False  # Seçim var mı?
-'''
-A boolean flag indicating whether there is an active selection on the canvas.
-'''
-# Seçim animasyonu için
+selection_edge_pixels: set = set()
+has_selection: bool = False
 selection_colors = [
-    QColor(0, 100, 255, 220),    # Mavi
-    QColor(255, 100, 0, 220),    # Turuncu
-    QColor(0, 200, 100, 220),    # Yeşil
-    QColor(200, 0, 255, 220)     # Mor
+    QColor(0, 100, 255, 220), QColor(255, 100, 0, 220),
+    QColor(0, 200, 100, 220), QColor(200, 0, 255, 220)
 ]
-'''
-A list of QColor objects used for animating the selection outline.
-The colors cycle to create a visual effect.
-'''
 current_selection_color_index = 0
-'''
-The index of the currently active color in the `selection_colors` list.
-Used to cycle through colors for selection animation.
-'''
 selection_animation_timer = None
-'''
-The timer object responsible for triggering selection animation updates.
-'''
-selection_animation_active = False  # Animasyon aktif mi?
-'''
-A boolean flag indicating whether the selection animation is currently active.
-'''
-selection_animation_speed = 500     # ms cinsinden hız
-'''
-The speed of the selection animation in milliseconds.
-This determines how frequently the selection color changes.
-'''
+selection_animation_active = False
+selection_animation_speed = 500
 
 round_rect_corner_radius = 10
-'''
-The corner radius for drawing rounded rectangles.
-'''
-#status bar text
+
 class StatusText:
-    '''
-    A simple class to hold and manage the text displayed in the application's status bar.
-    It encapsulates information about the active tool, mouse position, and zoom level.
-    '''
     def __init__(self, tool, pos, zoom):
         self.tool = tool
         self.pos = pos
         self.zoom = zoom
 
 statusText = StatusText("Tool:", "Pos:", "Zoom:")
-'''
-An instance of `StatusText` that holds the current status bar information.
-This object is updated dynamically to reflect the application's state.
-'''
-
-
-
-
 
 class Layer:
-    '''
-    Represents a single layer in the image editor.
-    Each layer has its own image, visibility, opacity, and other properties.
-
-    Attributes:
-        name (str): The name of the layer.
-        active (bool): True if this layer is currently selected/active for editing.
-        visible (bool): True if the layer is visible, False otherwise.
-        opacity (int): The opacity level of the layer (0-100).
-        image (PySide6.QtGui.QImage): The QImage object containing the layer's pixel data.
-        rasterized (bool): True if the layer is rasterized, False if it's a vector layer (though current implementation might be primarily raster).
-        locked (bool): True if the layer is locked and cannot be edited.
-        id (int): A unique identifier for the layer.
-    '''
     def __init__(self, name:str, visible:bool=True, opacity:int=100, image:PySide6.QtGui.QImage= QImage(image_width, image_height, PySide6.QtGui.QImage.Format.Format_RGBA64), rasterized:bool=True,locked:bool=False):
         self.name = name
         self.active=False
@@ -511,10 +366,70 @@ class Layer:
         self.locked = locked
         self.id=0
 
+# Filter settings
 shear_amount = 40
 shear_horizontal = True
 shear_direction = 1
-
 melt_amount = 30
 blur_radius = 3
 mosaic_block_size = 10
+
+# Brush settings
+brush_size = 30
+brush_hardness = 80
+brush_density = 100
+brush_shape = "circle"
+brush_mode = "solid"
+brush_image: QImage | None = None
+pattern_image: QImage | None = None
+brush_dynamic_angle = False
+brush_star_points = 5
+brush_cylinder_ratio = 0.5
+
+current_pen.setWidth(brush_size)
+
+def save_settings():
+    settings = QSettings("ie_settings.ini", QSettings.Format.IniFormat)
+    settings.setValue("brush_size", brush_size)
+    settings.setValue("brush_hardness", brush_hardness)
+    settings.setValue("brush_density", brush_density)
+    settings.setValue("brush_shape", brush_shape)
+    settings.setValue("brush_mode", brush_mode)
+    settings.setValue("brush_dynamic_angle", brush_dynamic_angle)
+    settings.setValue("brush_star_points", brush_star_points)
+    settings.setValue("brush_cylinder_ratio", brush_cylinder_ratio)
+    settings.setValue("pen_blur", pen_blur)
+    settings.setValue("spray_radius", spray_radius)
+    settings.setValue("spray_density", spray_density)
+    settings.setValue("fill_tolerance", fill_tolerance)
+    settings.setValue("round_rect_corner_radius", round_rect_corner_radius)
+    settings.setValue("shear_amount", shear_amount)
+    settings.setValue("shear_horizontal", shear_horizontal)
+    settings.setValue("shear_direction", shear_direction)
+    settings.setValue("melt_amount", melt_amount)
+    settings.setValue("blur_radius", blur_radius)
+    settings.setValue("mosaic_block_size", mosaic_block_size)
+
+def load_settings():
+    global brush_size, brush_hardness, brush_density, brush_shape, brush_mode, brush_dynamic_angle, brush_star_points, brush_cylinder_ratio, pen_blur, spray_radius, spray_density, fill_tolerance, round_rect_corner_radius, shear_amount, shear_horizontal, shear_direction, melt_amount, blur_radius, mosaic_block_size
+    settings = QSettings("ie_settings.ini", QSettings.Format.IniFormat)
+    brush_size = int(settings.value("brush_size", 30))
+    brush_hardness = int(settings.value("brush_hardness", 80))
+    brush_density = int(settings.value("brush_density", 100))
+    brush_shape = settings.value("brush_shape", "circle")
+    brush_mode = settings.value("brush_mode", "solid")
+    brush_dynamic_angle = bool(settings.value("brush_dynamic_angle", False))
+    brush_star_points = int(settings.value("brush_star_points", 5))
+    brush_cylinder_ratio = float(settings.value("brush_cylinder_ratio", 0.5))
+    pen_blur = int(settings.value("pen_blur", 1))
+    spray_radius = int(settings.value("spray_radius", 50))
+    spray_density = int(settings.value("spray_density", 100))
+    fill_tolerance = float(settings.value("fill_tolerance", 1.0))
+    round_rect_corner_radius = int(settings.value("round_rect_corner_radius", 10))
+    shear_amount = int(settings.value("shear_amount", 40))
+    shear_horizontal = bool(settings.value("shear_horizontal", True))
+    shear_direction = int(settings.value("shear_direction", 1))
+    melt_amount = int(settings.value("melt_amount", 30))
+    blur_radius = int(settings.value("blur_radius", 3))
+    mosaic_block_size = int(settings.value("mosaic_block_size", 10))
+    current_pen.setWidth(brush_size)
