@@ -24,7 +24,8 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
-        Dialog.resize(190, 320)
+        Dialog.resize(264, 320)
+        Dialog.setMinimumSize(QSize(260, 320))
         self.buttonBox = QDialogButtonBox(Dialog)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setGeometry(QRect(10, 270, 221, 41))

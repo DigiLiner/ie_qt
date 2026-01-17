@@ -1,16 +1,105 @@
 import math
 import time
 
-import PySide6
-from PySide6 import QtCore, QtGui
-from PySide6.QtCore import QPoint, QPointF, Qt, QRect
-from PySide6.QtGui import QPen, QColor, QBrush, QImage, QPainter, QMouseEvent, QPixmap, QPaintEvent
-from PySide6.QtWidgets import QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QWidget, QDialog, QVBoxLayout, \
+from PySide6 import QtGui
+from PySide6.QtCore import QPoint, Qt, QRect, QThread, Signal, QPointF, QRectF
+from PySide6.QtGui import QPen, QColor, QImage, QPainter, QMouseEvent, QPixmap, QPaintEvent, QPainterPath, QCursor
+from PySide6.QtWidgets import QSizePolicy, QWidget, QDialog, QVBoxLayout, \
     QLabel, QSlider, QPushButton
 import ie_tools
 import draw_window_ui
 import ie_globals
-from ie_functions import melt_image, shear_image, blur_image, mosaic_image
+import ie_filters
+import ie_utils
+from ie_functions import melt_image, shear_image, blur_image, gaussian_blur_image, mosaic_image
+
+# AI kütüphaneleri artık başlangıçta yüklenmiyor.
+
+class GenerationWorker(QThread):
+    """
+    AI görüntü üretimini ayrı bir iş parçacığında (thread) yürüten işçi sınıfı.
+    """
+    finished = Signal(QImage)
+
+    def __init__(self, prompt: str, parent=None):
+        super().__init__(parent)
+        self.prompt = prompt
+        self.width = 1024
+        self.height = 1024
+        self.pipe = None
+
+    def run(self):
+        # Tembel Yükleme: Kütüphaneler sadece bu thread çalıştığında yüklenir.
+        import torch
+        from diffusers import AutoPipelineForText2Image
+
+        if self.pipe is None:
+            print("Difüzyon modeli yükleniyor (ilk çalıştırmada uzun sürebilir)...")
+            model_id = "stabilityai/stable-diffusion-xl-base-1.0"
+            torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+            self.pipe = AutoPipelineForText2Image.from_pretrained(model_id, torch_dtype=torch_dtype)
+            if torch.cuda.is_available():
+                self.pipe = self.pipe.to("cuda")
+                print("cuda bulundu.")
+            else:
+                print("Uyarı: GPU bulunamadı. Model CPU üzerinde çalışacak ve bu yavaş olabilir.")
+            print("Model yüklendi.")
+
+        image = self.pipe(
+            prompt=self.prompt,
+            num_inference_steps=30,
+            guidance_scale=7.5,
+            width=self.width,
+            height=self.height
+        ).images[0]
+
+        q_image = ie_utils._pil_to_qimage(image)
+        self.finished.emit(q_image.copy())
+
+class InpaintingWorker(QThread):
+    """
+    AI nesne silme (inpainting) işlemini yürüten işçi sınıfı.
+    """
+    finished = Signal(QImage)
+
+    def __init__(self, image: QImage, mask: QImage, prompt: str, parent=None):
+        super().__init__(parent)
+        self.image = image
+        self.mask = mask
+        self.prompt = prompt
+        self.pipe = None
+
+    def run(self):
+        # Tembel Yükleme: Kütüphaneler sadece bu thread çalıştığında yüklenir.
+        import torch
+        from diffusers import AutoPipelineForInpainting
+
+        if self.pipe is None:
+            print("Inpainting modeli yükleniyor...")
+            model_id = "diffusers/stable-diffusion-xl-1.0-inpainting-0.1"
+            torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+            self.pipe = AutoPipelineForInpainting.from_pretrained(model_id, torch_dtype=torch_dtype)
+            if torch.cuda.is_available():
+                self.pipe = self.pipe.to("cuda")
+                print("cuda bulundu.")
+            else:
+                print("Uyarı: GPU bulunamadı. Model CPU üzerinde çalışacak.")
+            print("Inpainting modeli yüklendi.")
+
+        pil_image = ie_utils._qimage_to_pil(self.image)
+        pil_mask = ie_utils._qimage_to_pil(self.mask)
+
+        output = self.pipe(
+            prompt=self.prompt,
+            image=pil_image,
+            mask_image=pil_mask,
+            num_inference_steps=30,
+            guidance_scale=7.5,
+            strength=0.99
+        ).images[0]
+
+        q_image = ie_utils._pil_to_qimage(output)
+        self.finished.emit(q_image)
 
 
 class BrushSettingsDialog(QDialog):
@@ -54,183 +143,192 @@ class BrushSettingsDialog(QDialog):
         ie_globals.save_settings()
 
 
-class Editor(draw_window_ui.Ui_Form, QWidget):
-    def __init__(self, image_path: str, /) -> None:
-        super().__init__()
+class Editor(QWidget, draw_window_ui.Ui_Form):
+    def __init__(self, image_path: str = None, width: int = -1, height: int = -1) -> None:
+        super(Editor, self).__init__()
 
-        self.setupUi(self)  # Ensure the UI is set up
+        self.setupUi(self)
         self.image_path = image_path
-        '''
-        The file path of the image loaded into this editor tab.
-        '''
-        # You can add more initialization code here
         self.is_checkerboard_enabled = True
-        '''
-        A boolean flag indicating whether the checkerboard background is currently enabled for this editor.
-        '''
-        w = ie_globals.image_width
-        h = ie_globals.image_height
+
+        # Determine image dimensions
+        if width != -1:
+            w = width
+        else:
+            w = ie_globals.image_width
+        if height != -1:
+            h = height
+        else:
+            h = ie_globals.image_height
+
+        # Use a more standard image format like ARGB32
+        image_format = QImage.Format.Format_ARGB32
 
         self.widgetPicture1.setFixedSize(w, h)
         self.widgetPicture1.setStyleSheet(u"background-image: url(:/png/resources/images/checker20.png);")
 
-        self.pic2 = QImage(w, h, QImage.Format.Format_RGBA64)
+        # Initialize QImages with the chosen format and fill with transparent
+        self.pic2 = QImage(w, h, image_format)
+        self.pic2.fill(Qt.GlobalColor.transparent)
         '''
-        A temporary QImage used for drawing operations, often to store the image state before a temporary drawing action.
+        A temporary QImage used for drawing operations.
         '''
-        self.picOrg = QImage(w, h, QImage.Format.Format_RGBA64)
+        self.picOrg = QImage(w, h, image_format)
+        self.picOrg.fill(Qt.GlobalColor.transparent)
         '''
-        The original or current state of the image being edited. All permanent drawing operations are applied to this image.
+        The main QImage for the current layer.
         '''
+
         self.widgetPicture1.setMouseTracking(True)
         self.widgetPicture1.mousePressEvent = self.pic1_mousePressEvent
         self.widgetPicture1.mouseMoveEvent = self.pic1_mouseMoveEvent
         self.widgetPicture1.mouseReleaseEvent = self.pic1_mouseReleaseEvent
         self.widgetPicture1.paintEvent = self.pic1_paintEvent
-        self.widgetPicture1.wheelEvent = self.pic1_mouseWheelEvent  # type: ignore
-        # self.widgetPicture1.setFixedSize(400, 300)
+        self.widgetPicture1.wheelEvent = self.pic1_mouseWheelEvent
         self.widgetPicture1.show()
 
         self.startPos = QPoint(0, 0)
-        '''
-        The starting position of a mouse press event, used for drawing tools and panning.
-        '''
         self.lastPos = QPoint(0, 0)
-        '''
-        The last recorded position of the mouse, used for continuous drawing.
-        '''
         self.docStartPos = QPoint(0, 0)
-        '''
-        The starting position of the document (widgetPicture1) during a panning operation.
-        '''
         self.zoomFactor = 1.0
-        '''
-        The current zoom level of the image displayed in this editor. 1.0 means actual size.
-        '''
 
-        layerbg: ie_globals.Layer = ie_globals.Layer("Background", visible=True, opacity=100,
-                                                     image=QImage(w, h, QImage.Format.Format_RGBA64), rasterized=True,
-                                                     locked=False)
+        # Create background layer
+        bg_image = QImage(w, h, image_format)
+        bg_image.fill(Qt.GlobalColor.transparent)
+        layerbg = ie_globals.Layer(
+            "Background", visible=True, opacity=100,
+            image=bg_image, rasterized=True, locked=False
+        )
         self.layers: list = []
-        '''
-        A list containing all `ie_globals.Layer` objects for this editor document.
-        '''
         layerbg.active = True
-        layerbg.id = time.time_ns()  # create unique identifier
-        print(layerbg.id)
+        layerbg.id = time.time_ns()
         self.layers.append(layerbg)
-        self.currentLayerId: int = layerbg.id  #Layer index of current layer , change when active layer changed
-        '''
-        The unique identifier (ID) of the currently active layer.
-        '''
+        self.currentLayerId: int = layerbg.id
 
         self.panning = False
-        '''
-        A boolean flag indicating whether the user is currently panning the canvas.
-        '''
         self.previous_tool = ie_globals.ie_tool_pen
-        '''
-        Stores the tool that was active before the current one, useful for temporary tool switches (e.g., eyedropper).
-        '''
 
-        #undo/redo variables
-        self.undoList: list = []  # list of images for each undo operation
-        '''
-        A list of QImage copies representing the historical states of the `picOrg` for undo operations.
-        '''
-        self.undoLayerList: list = []  # list of layer numbers for each undo operation
-        '''
-        A list storing the layer ID associated with each image in the `undoList`,
-        indicating which layer was modified at that undo step.
-        '''
-        self.undoIndex = -1  # index of current undo operation
-        '''
-        The current index in the `undoList` and `undoLayerList`, pointing to the present state of the image.
-        '''
-        self.appendUndoImage()  # add original image to undo list
+        # Undo/Redo setup
+        self.undoList: list = []
+        self.undoLayerList: list = []
+        self.undoIndex = -1
+        self.appendUndoImage()
+
+        # AI workers
+        self.generation_worker = None
+        self.inpainting_worker = None
 
     def open_brush_settings(self):
         dialog = BrushSettingsDialog(self)
         dialog.exec()
 
+    def generate_image_from_prompt(self, prompt: str):
+        """
+        Generates an image based on a text prompt using a diffusion model in a separate thread.
+        """
+        try:
+            import torch
+            from diffusers import AutoPipelineForText2Image
+        except ImportError:
+            print("Gerekli kütüphaneler bulunamadı. Lütfen 'pip install torch transformers diffusers accelerate' komutu ile kurun.")
+            self.picOrg.fill(Qt.GlobalColor.black)
+            painter = QPainter(self.picOrg)
+            painter.setPen(QPen(Qt.GlobalColor.white))
+            font = painter.font()
+            font.setPointSize(16)
+            painter.setFont(font)
+            painter.drawText(self.picOrg.rect(), Qt.AlignmentFlag.AlignCenter,
+                             "AI Üretimi için kütüphaneler eksik.\nLütfen terminalden kurun:\n"
+                             "pip install torch diffusers transformers accelerate")
+            painter.end()
+            self.pic1_update()
+            return
+
+        if self.generation_worker is not None:
+            print("Zaten bir görüntü üretiliyor. Lütfen mevcut işlemin bitmesini bekleyin.")
+            return
+
+        print("Görüntü üretimi başlıyor... Bu işlem biraz zaman alabilir.")
+        self.picOrg.fill(Qt.GlobalColor.black)
+        painter = QPainter(self.picOrg)
+        painter.setPen(QPen(Qt.GlobalColor.white))
+        font = painter.font()
+        font.setPointSize(20)
+        painter.setFont(font)
+        painter.drawText(self.picOrg.rect(), Qt.AlignmentFlag.AlignCenter, f"Üretiliyor...\n'{prompt}'")
+        painter.end()
+        self.pic1_update()
+
+        self.generation_worker = GenerationWorker(prompt)
+        self.generation_worker.finished.connect(self.on_generation_finished)
+        self.generation_worker.start()
+
+    def on_generation_finished(self, generated_image: QImage):
+        """
+        Görüntü üretme iş parçacığı bittiğinde bu slot çağrılır.
+        """
+        new_pic = QImage(self.picOrg.size(), QImage.Format.Format_ARGB32)
+        new_pic.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(new_pic)
+        target_rect = self.picOrg.rect()
+        scaled_image = generated_image.scaled(target_rect.size(), Qt.AspectRatioMode.KeepAspectRatio,
+                                              Qt.TransformationMode.SmoothTransformation)
+        x = (target_rect.width() - scaled_image.width()) / 2
+        y = (target_rect.height() - scaled_image.height()) / 2
+        painter.drawImage(QPoint(int(x), int(y)), scaled_image)
+        painter.end()
+
+        self.picOrg = new_pic
+        self.appendUndoImage()
+        self.pic1_update()
+        print("Görüntü üretimi tamamlandı.")
+        self.generation_worker = None
+
     ##region mouse wheel [rgba(222, 100, 222,0.1)]
     def pic1_mouseWheelEvent(self, event: QtGui.QWheelEvent) -> None:
         """
-        Handles mouse wheel events for zooming in and out of the image.
-        It calculates the new zoom factor and adjusts the scroll bar positions
-        to keep the mouse-over point centered.
-
-        Args:
-            event (QtGui.QWheelEvent): The mouse wheel event.
+        Handles mouse wheel events for zooming in and out of the image, centered on the mouse cursor.
         """
-        # Get scroll bars
+        # 1. Yakınlaştırma oranını belirle ve yeni yakınlaştırma faktörünü hesapla
+        zoom_delta = 1.25
+        old_zoom_factor = self.zoomFactor
+        if event.angleDelta().y() > 0:
+            new_zoom_factor = old_zoom_factor * zoom_delta
+        else:
+            new_zoom_factor = old_zoom_factor / zoom_delta
+        new_zoom_factor = max(0.1, min(10.0, new_zoom_factor))
+
+        # Eğer yakınlaştırma değişmediyse, bir şey yapma
+        if abs(new_zoom_factor - old_zoom_factor) < 0.001:
+            return
+
+        # 2. Mevcut durumları al
         hbar = self.scrollArea.horizontalScrollBar()
         vbar = self.scrollArea.verticalScrollBar()
+        old_scroll_pos = QPointF(hbar.value(), vbar.value())
 
-        # Get viewport position (use integer values for pixel accuracy)
-        viewport_pos = event.position()
-        viewport_x = int(viewport_pos.x())
-        viewport_y = int(viewport_pos.y())
+        # Fare konumunu al. event.position() yerine QCursor.pos() kullanmak
+        # genellikle daha güvenilirdir, çünkü mutlak ekran konumunu verir.
+        # Sonra bunu widget'ın yerel koordinatlarına çeviririz.
+        mouse_pos_on_widget = self.widgetPicture1.mapFromGlobal(QCursor.pos())
 
-        # Calculate position in image space before zoom
-        img_x = (viewport_x + hbar.value()) / self.zoomFactor
-        img_y = (viewport_y + vbar.value()) / self.zoomFactor
+        # 3. Gerekli kaydırma miktarını hesapla
+        # Formül: YeniKaydırma = EskiKaydırma + FareKonumu * (YakınlaştırmaOranı - 1)
+        # Bu formül, fare imlecinin altındaki noktanın ekranda sabit kalmasını sağlar.
+        zoom_ratio = new_zoom_factor / old_zoom_factor
+        displacement = QPointF(mouse_pos_on_widget) * (zoom_ratio - 1.0)
+        new_scroll_pos = old_scroll_pos + displacement
 
-        # Calculate new zoom factor
-        old_zoom = self.zoomFactor
-        if event.angleDelta().y() > 0:
-            new_zoom = old_zoom * ie_globals.zoomInFactor
-        else:
-            new_zoom = old_zoom * ie_globals.zoomOutFactor
+        # 4. Yeni yakınlaştırmayı ve boyutu uygula
+        self.zoomFactor = new_zoom_factor
+        self.pic1_update()  # Bu, widget'ı yeniden boyutlandırır ve kaydırma çubuklarının aralığını günceller
 
-        # Clamp zoom factor
-        new_zoom = max(0.1, min(10.0, new_zoom))
-
-        # Store current scrollbar values before update
-        old_hvalue = hbar.value()
-        old_vvalue = vbar.value()
-
-        # Update zoom and widget size
-        self.zoomFactor = new_zoom
-        self.pic1_update()
-
-        # Get the updated widget size
-        widget_size = self.widgetPicture1.size()
-        viewport_size = self.scrollArea.viewport().size()
-
-        # Calculate maximum scroll values
-        max_hscroll = max(0, widget_size.width() - viewport_size.width())
-        max_vscroll = max(0, widget_size.height() - viewport_size.height())
-
-        # Calculate new scroll position to keep the same image point under cursor
-        new_scroll_x = int(img_x * new_zoom - viewport_x)
-        new_scroll_y = int(img_y * new_zoom - viewport_y)
-
-        # Clamp scroll values to valid range
-        new_scroll_x = max(0, min(max_hscroll, new_scroll_x))
-        new_scroll_y = max(0, min(max_vscroll, new_scroll_y))
-
-        # Apply scroll positions
-        hbar.setValue(new_scroll_x)
-        vbar.setValue(new_scroll_y)
-
-        # Debug info
-        print("\n=== Zoom Debug Info ===")
-        print(f"Mouse viewport: ({viewport_x}, {viewport_y})")
-        print(f"Image position: ({img_x:.1f}, {img_y:.1f})")
-        print(f"Zoom: {old_zoom:.3f} -> {new_zoom:.3f}")
-        print(f"Widget size: {widget_size.width()}x{widget_size.height()}")
-        print(f"Viewport size: {viewport_size.width()}x{viewport_size.height()}")
-        print(f"Max scroll: ({max_hscroll}, {max_vscroll})")
-        print(f"Old scroll: ({old_hvalue}, {old_vvalue})")
-        print(f"New scroll: ({new_scroll_x}, {new_scroll_y})")
-
-        # Verify position
-        final_img_x = (viewport_x + new_scroll_x) / new_zoom
-        final_img_y = (viewport_y + new_scroll_y) / new_zoom
-        print(f"Final image pos: ({final_img_x:.1f}, {final_img_y:.1f})")
-        print(f"Position error: ({abs(final_img_x - img_x):.3f}, {abs(final_img_y - img_y):.3f})")
-        print("=== End Debug Info ===\n")
+        # 5. Yeni kaydırma değerlerini uygula
+        # Bu, pic1_update çağrıldıktan *sonra* yapılmalıdır ki, kaydırma çubuklarının
+        # yeni maksimum değerleri hesaplanmış olsun.
+        hbar.setValue(int(new_scroll_pos.x()))
+        vbar.setValue(int(new_scroll_pos.y()))
 
     #endregion
 
@@ -243,42 +341,41 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         Args:
             event (QMouseEvent): The mouse press event.
         """
-        # print mouse position
-        #print  (event.pos())
-        # if left mouse button is pressed
         if event.button() == Qt.MouseButton.LeftButton:
-            # make drawing flag true
-            eventstr = "down"
             self.pic2 = self.picOrg.copy()
-            ie_globals.current_brush.setTexture(QPixmap("textures/texture_01.png"))
-            # make last point to the point of cursor
             self.lastPos = event.pos()
             self.startPos = event.pos()
             virtualStartPos: QPoint = QPoint(
                 math.trunc(self.startPos.x() / self.zoomFactor),
                 math.trunc(self.startPos.y() / self.zoomFactor))
-            if ie_globals.current_tool == ie_globals.ie_tool_pen:
-                ie_tools.draw_line(self.picOrg, virtualStartPos, virtualStartPos, eventstr)
-                self.startPos = event.pos()
-            elif ie_globals.current_tool == ie_globals.ie_tool_brush:
+            
+            tool = ie_globals.current_tool
+            if tool == ie_globals.ie_tool_pen:
+                ie_tools.draw_pen(self.picOrg, virtualStartPos, virtualStartPos)
+            elif tool == ie_globals.ie_tool_brush:
                 ie_tools.draw_brush(self.picOrg, virtualStartPos)
-                self.lastPos = event.pos()
-            elif ie_globals.current_tool == ie_globals.ie_tool_fill:
+            elif tool == ie_globals.ie_tool_fill:
                 ie_tools.fill(img1=self.picOrg, pt1=virtualStartPos, task="down", tolerance=ie_globals.fill_tolerance)
-            elif ie_globals.current_tool == ie_globals.ie_tool_wand:
+            elif tool == ie_globals.ie_tool_wand:
                 ie_tools.select_wand(img1=self.picOrg, pt1=virtualStartPos, task="down")
-            elif ie_globals.current_tool == ie_globals.ie_tool_eraser:
-                ie_tools.erase(self.picOrg, pt1=virtualStartPos, task="down")
-            elif ie_globals.current_tool == ie_globals.ie_tool_dropper:
-
+            elif tool == ie_globals.ie_tool_select_rect:
+                ie_tools.select_rect(pt1=virtualStartPos, pt2=virtualStartPos, task="down")
+            elif tool == ie_globals.ie_tool_select_circle:
+                ie_tools.select_circle(pt1=virtualStartPos, pt2=virtualStartPos, task="down")
+            elif tool == ie_globals.ie_tool_eraser:
+                ie_tools.erase(self.picOrg, virtualStartPos, virtualStartPos, "down")
+            elif tool == ie_globals.ie_tool_dropper:
+                ie_globals.previous_tool = ie_globals.current_tool
+                previous_alpha = ie_globals.current_pen.color().alpha()
                 ie_globals.current_pen.setColor(self.picOrg.pixelColor(virtualStartPos))
+                ie_globals.current_pen.color().setAlpha(previous_alpha)
+                ie_globals.current_brush.setColor(ie_globals.current_pen.color())
                 ie_globals.current_tool = ie_globals.previous_tool
 
             self.pic1_update()
         elif event.button() == Qt.MouseButton.MiddleButton:
             self.panning = True
             self.startPos = event.globalPos()
-            self.docStartPos = self.widgetPicture1.pos()
 
     #endregion
 
@@ -286,124 +383,63 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
     def pic1_mouseMoveEvent(self, event: QMouseEvent) -> None:
         """
         Handles mouse move events on the image display widget (`widgetPicture1`).
-        Performs continuous drawing actions based on the currently selected tool
-        or handles panning if the middle mouse button is pressed.
-
-        Args:
-            event (QMouseEvent): The mouse move event.
         """
-        eventstr: str = "move"
-
         if event.buttons() == Qt.MouseButton.LeftButton:
-            virtualStartPos: QPoint = QPoint(
-                math.trunc(self.startPos.x() / self.zoomFactor),
-                math.trunc(self.startPos.y() / self.zoomFactor)
-            )
-            virtualpos: QPoint = QPoint(
-                math.trunc(event.pos().x() / self.zoomFactor),
-                math.trunc(event.pos().y() / self.zoomFactor)
-            )
-            ie_globals.statusText.pos = "Mouse Position: " + str(virtualpos.x()) + ", " + str(virtualpos.y())
-
-            if ie_globals.current_tool == ie_globals.ie_tool_pen:
-                ie_globals.current_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                ie_globals.current_pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-                ie_tools.draw_line(self.picOrg, virtualStartPos, virtualpos, eventstr)
-                self.startPos = event.pos()
+            virtualStartPos = QPoint(int(self.startPos.x() / self.zoomFactor), int(self.startPos.y() / self.zoomFactor))
+            virtualpos = QPoint(int(event.pos().x() / self.zoomFactor), int(event.pos().y() / self.zoomFactor))
+            virtualLastPos = QPoint(int(self.lastPos.x() / self.zoomFactor), int(self.lastPos.y() / self.zoomFactor))
             
-            elif ie_globals.current_tool == ie_globals.ie_tool_brush:
-                start_point = self.lastPos
-                end_point = event.pos()
-                
-                dist = math.hypot(end_point.x() - start_point.x(), end_point.y() - start_point.y())
-                
-                size = ie_globals.brush_size
-                density = ie_globals.brush_density / 100.0
-                
-                if density <= 0: density = 0.01
-                spacing = size / (density * 10)
-                if spacing < 1: spacing = 1
-                
-                num_steps = max(1, int(dist / spacing))
+            ie_globals.statusText.pos = f"Mouse Position: {virtualpos.x()}, {virtualpos.y()}"
 
-                # Calculate angle
-                angle = 0.0
-                if ie_globals.brush_dynamic_angle:
-                    dx = end_point.x() - start_point.x()
-                    dy = end_point.y() - start_point.y()
-                    if dx != 0 or dy != 0:
-                        angle = math.degrees(math.atan2(dy, dx))
+            tool = ie_globals.current_tool
+            if tool in [ie_globals.ie_tool_pen, ie_globals.ie_tool_brush]:
+                ie_tools.draw_pen(self.picOrg, virtualLastPos, virtualpos)
+            elif tool == ie_globals.ie_tool_eraser:
+                ie_tools.erase(self.picOrg, virtualLastPos, virtualpos, "move")
+            elif tool in [ie_globals.ie_tool_line, ie_globals.ie_tool_circle, ie_globals.ie_tool_rect, ie_globals.ie_tool_circle_outline, ie_globals.ie_tool_rounded_rect]:
+                self.picOrg = self.pic2.copy()
+                if tool == ie_globals.ie_tool_line: ie_tools.draw_line(self.picOrg, virtualStartPos, virtualpos, "move")
+                if tool == ie_globals.ie_tool_circle: ie_tools.draw_circle(self.picOrg, virtualStartPos, virtualpos, "move")
+                if tool == ie_globals.ie_tool_rect: ie_tools.draw_rect(self.picOrg, virtualStartPos, virtualpos, "move")
+                if tool == ie_globals.ie_tool_circle_outline: ie_tools.draw_circle_outline(self.picOrg, virtualStartPos, virtualpos, "move")
+                if tool == ie_globals.ie_tool_rounded_rect: ie_tools.draw_round_rect(self.picOrg, virtualStartPos, virtualpos, "move")
+            elif tool == ie_globals.ie_tool_spray:
+                ie_tools.draw_spray(self.picOrg, virtualpos, "move")
+            elif tool == ie_globals.ie_tool_select_rect:
+                ie_tools.select_rect(pt1=virtualStartPos, pt2=virtualpos, task="move")
+            elif tool == ie_globals.ie_tool_select_circle:
+                ie_tools.select_circle(pt1=virtualStartPos, pt2=virtualpos, task="move")
 
-                for i in range(num_steps):
-                    t = i / float(num_steps)
-                    x = start_point.x() * (1.0 - t) + end_point.x() * t
-                    y = start_point.y() * (1.0 - t) + end_point.y() * t
-                    
-                    brush_pos = QPoint(int(x), int(y))
-                    
-                    virtual_brush_pos = QPoint(
-                        math.trunc(brush_pos.x() / self.zoomFactor),
-                        math.trunc(brush_pos.y() / self.zoomFactor)
-                    )
-                    
-                    ie_tools.draw_brush(self.picOrg, virtual_brush_pos, angle)
-
-            elif ie_globals.current_tool == ie_globals.ie_tool_line:
-                self.picOrg = self.pic2.copy()
-                ie_tools.draw_line(self.picOrg, virtualStartPos, virtualpos, eventstr)
-            elif ie_globals.current_tool == ie_globals.ie_tool_circle:
-                self.picOrg = self.pic2.copy()
-                ie_tools.draw_circle(self.picOrg, virtualStartPos, virtualpos, eventstr)
-            elif ie_globals.current_tool == ie_globals.ie_tool_circle_outline:
-                self.picOrg = self.pic2.copy()
-                ie_tools.draw_circle_outline(self.picOrg, virtualStartPos, virtualpos, eventstr)
-            elif ie_globals.current_tool == ie_globals.ie_tool_rect:
-                self.picOrg = self.pic2.copy()
-                ie_tools.draw_rect(self.picOrg, virtualStartPos, virtualpos, eventstr)
-            elif ie_globals.current_tool == ie_globals.ie_tool_rounded_rect:
-                self.picOrg = self.pic2.copy()
-                ie_tools.draw_round_rect(self.picOrg, virtualStartPos, virtualpos, eventstr,
-                                         corner_radius=ie_globals.round_rect_corner_radius)
-            elif ie_globals.current_tool == ie_globals.ie_tool_spray:
-                ie_tools.draw_spray(self.picOrg, virtualpos, eventstr)
-            elif ie_globals.current_tool == ie_globals.ie_tool_pan:
-                pass
-            elif ie_globals.current_tool == ie_globals.ie_tool_eraser:
-                virtualpos: QPoint = QPoint(
-                    math.trunc(event.pos().x() / self.zoomFactor),
-                    math.trunc(event.pos().y() / self.zoomFactor)
-                )
-                ie_tools.erase(self.picOrg, virtualpos, "move")
-                pass
             self.lastPos = event.pos()
-            # update
             self.pic1_update()
 
         elif event.buttons() == Qt.MouseButton.MiddleButton and self.panning:
-            deltaX = int(event.globalPosition().x() - self.startPos.x())
-            deltaY = int(event.globalPosition().y() - self.startPos.y())
-            self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().value() - deltaY)
-            self.scrollArea.horizontalScrollBar().setValue(self.scrollArea.horizontalScrollBar().value() - deltaX)
-            self.startPos = event.globalPosition().toPoint()
+            delta = event.globalPos() - self.startPos
+            self.scrollArea.horizontalScrollBar().setValue(self.scrollArea.horizontalScrollBar().value() - delta.x())
+            self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().value() - delta.y())
+            self.startPos = event.globalPos()
 
     #endregion
 
     #region mouse release [rgba(255, 255, 121,0.1)]
     def pic1_mouseReleaseEvent(self, event: QMouseEvent) -> None:
         """
-        Handles mouse release events on the image display widget (`widgetPicture1`).
-        Appends the current image state to the undo history after a drawing operation.
-
-        Args:
-            event (QMouseEvent): The mouse release event.
+        Handles mouse release events.
         """
-        eventstr: str = "up"
         if event.button() == Qt.MouseButton.LeftButton:
-            # if self.undo_index < len(self.undoList) - 1:
-            #     del self.undoList[self.undo_index + 1:] 
+            virtualStartPos = QPoint(int(self.startPos.x() / self.zoomFactor), int(self.startPos.y() / self.zoomFactor))
+            virtualpos = QPoint(int(event.pos().x() / self.zoomFactor), int(event.pos().y() / self.zoomFactor))
+            
+            tool = ie_globals.current_tool
+            if tool == ie_globals.ie_tool_select_rect:
+                ie_tools.select_rect(pt1=virtualStartPos, pt2=virtualpos, task="release")
+            elif tool == ie_globals.ie_tool_select_circle:
+                ie_tools.select_circle(pt1=virtualStartPos, pt2=virtualpos, task="release")
+            else:
+                self.appendUndoImage()
+            
+            self.pic1_update()
 
-            self.appendUndoImage()
-            #print(self.undo_index, len(self.undoList))
         elif event.button() == Qt.MouseButton.MiddleButton:
             self.panning = False
 
@@ -413,199 +449,167 @@ class Editor(draw_window_ui.Ui_Form, QWidget):
         Appends the current state of `picOrg` and the `currentLayerId` to the undo history.
         If the undo list exceeds `ie_globals.max_undo_steps`, the oldest entry is removed.
         """
-        # Geri alma listesi maksimum boyuta ulaştıysa, en eskisini sil
         if len(self.undoList) >= ie_globals.max_undo_steps:
             self.undoList.pop(0)
             self.undoLayerList.pop(0)
 
         self.undoList.append(self.picOrg.copy())
-        layerindex = None
-
-        for layer in self.layers:
-            if layer.id == self.currentLayerId:
-                layerindex = layer.id
-                break  # Exit the loop once the layer is found
+        layerindex = next((layer.id for layer in self.layers if layer.id == self.currentLayerId), None)
+        
         if layerindex is None:
             raise ValueError(f"No layer found with id {self.currentLayerId}")
 
         self.undoLayerList.append(layerindex)
         self.undoIndex = len(self.undoList) - 1
-        print("undo index", self.undoIndex, len(self.undoList))
+
 
     def undoImage(self) -> None:
         """
         Reverts the image to the previous state in the undo history.
-        Decrements `undoIndex` and calls `drawUndoImage` to update the display.
         """
-
         if self.undoIndex > 0:
             self.undoIndex -= 1
-        self.drawUndoImage()
-        print("undo index", self.undoIndex, len(self.undoList))
+            self.drawUndoImage()
+
 
     def redoImage(self) -> None:
         """
-        Advances the image to the next state in the undo history (if available).
-        Increments `undoIndex` and calls `drawUndoImage` to update the display.
+        Advances the image to the next state in the undo history.
         """
-
         if self.undoIndex < len(self.undoList) - 1:
             self.undoIndex += 1
-        self.drawUndoImage()
-        print("undo index", self.undoIndex, len(self.undoList))
+            self.drawUndoImage()
+
 
     def drawUndoImage(self) -> None:
         """
-        Restores the image and active layer to a state from the undo history
-        based on the current `undoIndex`.
+        Restores the image and active layer to a state from the undo history.
         """
-        if self.undoIndex < 0 or self.undoIndex >= len(self.undoList):
-            return
+        if 0 <= self.undoIndex < len(self.undoList):
+            layer_id_to_restore = self.undoLayerList[self.undoIndex]
+            layer_to_restore = next((layer for layer in self.layers if layer.id == layer_id_to_restore), None)
+            
+            if layer_to_restore:
+                layer_to_restore.image = self.undoList[self.undoIndex].copy()
+                if layer_to_restore.id == self.currentLayerId:
+                    self.picOrg = layer_to_restore.image
+            else:
+                # Fallback for safety
+                self.picOrg = self.undoList[self.undoIndex].copy()
 
-        # 1. Geri alınacak katman ID'sini al
-        layer_id_to_restore = self.undoLayerList[self.undoIndex]
-
-        # 2. İlgili katmanı bul ve resmini geri yükle
-        found_layer = False
-        for layer in self.layers:
-            if layer.id == layer_id_to_restore:
-                # QImage'i kopyalayarak atama yap
-                layer.image = self.undoList[self.undoIndex].copy()
-                found_layer = True
-
-                # 3. Eğer geri yüklenen katman aktif katman ise, ana çizim alanını (picOrg) güncelle
-                if layer.id == self.currentLayerId:
-                    self.picOrg = layer.image
-                break
-
-        if not found_layer:
-            print(f"Hata: Geri alma işlemi için {layer_id_to_restore} ID'li katman bulunamadı.")
-            # Hata durumunda eski davranışa geri dön (çökmeyi önle)
-            self.picOrg = self.undoList[self.undoIndex].copy()
-
-        self.pic1_update()
+            self.pic1_update()
 
     #region paint [rgba(125, 152, 200,0.1)]
-    #picture 1 view update from original image
     def pic1_update(self) -> None:
         """
-        Updates the display of `widgetPicture1` by adjusting its size based on the current zoom factor
-        and triggering a repaint event. Also updates the global zoom status text.
+        Updates the display of `widgetPicture1` by adjusting its size and triggering a repaint.
         """
-        ie_globals.statusText.zoom = "Zoom: " + str(self.zoomFactor)
+        ie_globals.statusText.zoom = f"Zoom: {self.zoomFactor:.2f}"
         w = int(self.picOrg.width() * self.zoomFactor)
         h = int(self.picOrg.height() * self.zoomFactor)
         self.widgetPicture1.setFixedSize(w, h)
-        self.scrollArea.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        self.scrollArea.update()
-        self.widgetPicture1.update()  #call paint event
+        self.widgetPicture1.update()
 
-    # paint event
     def pic1_paintEvent(self, event: QPaintEvent) -> None:
         """
-        Handles the paint event for the `widgetPicture1` (the image display area).
-        It draws the main image and, if active, overlays the selection outline and bounding box.
-
-        Args:
-            event (QPaintEvent): The paint event.
+        Handles the paint event for the image display area.
         """
         canvasPainter = QPainter(self.widgetPicture1)
+        canvasPainter.drawPixmap(self.widgetPicture1.rect(), QPixmap.fromImage(self.picOrg))
 
-        # 1. Önce ana resmi çiz
-        pixmap = QPixmap.fromImage(self.picOrg)
-        canvasPainter.drawPixmap(self.widgetPicture1.rect(), pixmap, pixmap.rect())
+        if ie_globals.has_selection:
+            current_color = ie_globals.selection_colors[ie_globals.current_selection_color_index]
+            
+            edge_pen = QPen(current_color, 2, Qt.PenStyle.DashLine)
+            edge_pen.setDashPattern([4, 4])
+            edge_pen.setDashOffset((time.time() * 10) % 8)
+            
+            canvasPainter.setPen(edge_pen)
+            canvasPainter.setBrush(Qt.BrushStyle.NoBrush)
 
-        # 2. SEÇİMİ GÖSTER - hem kenarları hem de çerçeveyi çiz
-        if hasattr(ie_globals, 'has_selection') and ie_globals.has_selection:
-            if hasattr(ie_globals, 'selection_edge_pixels') and ie_globals.selection_edge_pixels:
+            transform = QtGui.QTransform().scale(self.zoomFactor, self.zoomFactor)
 
-                # ANİMASYONLU RENK - global color listesinden al
-                if hasattr(ie_globals, 'selection_colors') and hasattr(ie_globals, 'current_selection_color_index'):
-                    current_color = ie_globals.selection_colors[ie_globals.current_selection_color_index]
-                else:
-                    current_color = QColor(0, 100, 255, 220)  # Varsayılan mavi
-
-                # SEÇİM KENARLARINI ÇİZ - mor noktalar
-                edge_pen = QPen(QColor(current_color))  # Yarı saydam mavi
-                edge_pen.setWidth(int(2 * self.zoomFactor))
-                edge_pen.setStyle(Qt.PenStyle.SolidLine)
-                edge_pen.setDashPattern([4, 4])  # 4 pixel çizgi, 4 pixel boşluk
-
-                canvasPainter.setPen(edge_pen)
-
+            if ie_globals.selection_type == 'wand' and ie_globals.selection_edge_pixels:
+                path = QPainterPath()
                 for x, y in ie_globals.selection_edge_pixels:
-                    # Zoom faktörüne göre pozisyonları ayarla
-                    scaled_x = int((x + 0.5) * self.zoomFactor)
-                    scaled_y = int((y + 0.5) * self.zoomFactor)
-                    canvasPainter.drawPoint(scaled_x, scaled_y)
-
-            # SEÇİM ÇERÇEVESİNİ ÇİZ - kırmızı dikdörtgen
-            if hasattr(ie_globals, 'selection_bounds') and ie_globals.selection_bounds:
-                frame_pen = QPen(QColor(255, 0, 0, 200))  # Kırmızı çerçeve
-                frame_pen.setWidth(2)
-                frame_pen.setStyle(Qt.PenStyle.DashLine)
-                frame_pen.setDashPattern([4, 4])  # 4 pixel çizgi, 4 pixel boşluk
-                canvasPainter.setPen(frame_pen)
-                canvasPainter.setBrush(QColor(0, 0, 0, 0))  # İçi boş
-
-                selection_rect = ie_globals.selection_bounds
-                scaled_rect = QRect(
-                    int(selection_rect.x() * self.zoomFactor),
-                    int(selection_rect.y() * self.zoomFactor),
-                    int(selection_rect.width() * self.zoomFactor),
-                    int(selection_rect.height() * self.zoomFactor)
-                )
-
-                canvasPainter.drawRect(scaled_rect)
-
+                    path.addRect(QRectF(x, y, 1, 1))
+                canvasPainter.drawPath(transform.map(path))
+            elif ie_globals.selection_bounds:
+                scaled_rect = transform.mapRect(QRectF(ie_globals.selection_bounds))
+                if ie_globals.selection_type == 'circle':
+                    canvasPainter.drawEllipse(scaled_rect)
+                else:
+                    canvasPainter.drawRect(scaled_rect)
         canvasPainter.end()
    
     def apply_melt_filter(self):
-        """
-        Applies a melt effect to the current image using global parameters.
-        """
-        if self.picOrg is None:
-            return
-
-        self.picOrg = melt_image(self.picOrg, amount=ie_globals.melt_amount)
-        self.appendUndoImage()
-        self.pic1_update()
+        if self.picOrg:
+            self.picOrg = melt_image(self.picOrg, amount=ie_globals.melt_amount)
+            self.appendUndoImage()
+            self.pic1_update()
 
     def apply_shear_filter(self):
-        """
-        Applies a shear effect to the current image using global parameters.
-        """
-        if self.picOrg is None:
-            return
+        if self.picOrg:
+            self.picOrg = shear_image(self.picOrg, amount=ie_globals.shear_amount, horizontal=ie_globals.shear_horizontal, direction=ie_globals.shear_direction)
+            self.appendUndoImage()
+            self.pic1_update()
 
-        self.picOrg = shear_image(
-            self.picOrg,
-            amount=ie_globals.shear_amount,
-            horizontal=ie_globals.shear_horizontal,
-            direction=ie_globals.shear_direction
-        )
-        self.appendUndoImage()
-        self.pic1_update()
-
-    # -------------- Yeni eklenen filtreler --------------
     def apply_blur_filter(self):
-        """
-        Applies a box blur to the image using global parameters.
-        """
-        if getattr(self, "picOrg", None) is None:
-            return
-        
-        self.picOrg = blur_image(self.picOrg, radius=ie_globals.blur_radius)
-        self.appendUndoImage()
-        self.pic1_update()
+        if self.picOrg:
+            self.picOrg = blur_image(self.picOrg, radius=ie_globals.blur_radius)
+            self.appendUndoImage()
+            self.pic1_update()
+
+    def apply_gaussian_blur_filter(self):
+        if self.picOrg:
+            self.picOrg = gaussian_blur_image(self.picOrg, radius=ie_globals.gaussian_blur_radius)
+            self.appendUndoImage()
+            self.pic1_update()
 
     def apply_mosaic_filter(self):
+        if self.picOrg:
+            self.picOrg = mosaic_image(self.picOrg, block_size=ie_globals.mosaic_block_size)
+            self.appendUndoImage()
+            self.pic1_update()
+
+    def apply_sepia_filter(self):
+        if self.picOrg:
+            self.picOrg = ie_filters.apply_sepia(self.picOrg)
+            self.appendUndoImage()
+            self.pic1_update()
+
+    def remove_object_with_ai(self):
         """
-        Applies a mosaic/pixelate effect to the image using global parameters.
+        Removes the selected object using AI inpainting.
         """
-        if getattr(self, "picOrg", None) is None:
+        try:
+            import torch
+            from diffusers import AutoPipelineForInpainting
+        except ImportError:
+            print("Gerekli AI kütüphaneleri eksik.")
+            return
+            
+        if not ie_globals.has_selection:
+            print("Lütfen önce silinecek nesneyi seçin.")
             return
 
-        self.picOrg = mosaic_image(self.picOrg, block_size=ie_globals.mosaic_block_size)
+        print("Nesne silme işlemi başlatılıyor...")
+        mask = QImage(self.picOrg.size(), QImage.Format.Format_Grayscale8)
+        mask.fill(Qt.GlobalColor.black)
+        
+        painter = QPainter(mask)
+        painter.setPen(QColor(255, 255, 255))
+        painter.drawPoints([QPoint(x, y) for x, y in ie_globals.current_selection])
+        painter.end()
+
+        prompt = "background, clean, empty"
+        self.inpainting_worker = InpaintingWorker(self.picOrg, mask, prompt)
+        self.inpainting_worker.finished.connect(self.on_inpainting_finished)
+        self.inpainting_worker.start()
+
+    def on_inpainting_finished(self, new_image: QImage):
+        self.picOrg = new_image
         self.appendUndoImage()
         self.pic1_update()
+        print("Nesne silme tamamlandı.")
+        self.inpainting_worker = None

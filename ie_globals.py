@@ -1,24 +1,20 @@
 # This file contains global variables used by the image editor.
 import PySide6
-import PySide6.QtGui
 import PySide6.QtCore
+import PySide6.QtGui
 import PySide6.QtWidgets
-from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import Qt, QSettings
-from PySide6.QtGui import QPen, QColor, QBrush, QImage, QPainter, QMouseEvent, QPixmap
-import main_ui as iemain
-import main_ui as main_ui
+from PySide6.QtGui import QColor, QImage, QRegion
+
 
 class ie_tool:
     def __init__(self, name:str, icon:str, tool_id:int, shortcut:str="", description:str="", finished:bool=False):
-        
-    
         self.name = name
         self.icon = icon
         self.tool_id = tool_id
         self.shortcut = shortcut
-        self.description = ""
-        self.finished = False # developer tag
+        self.description = description
+        self.finished = finished
 
 
 ie_tool_pen = ie_tool("Pen", "svgicons/pen-gray.svg", 1000, "P", "Pen Tool",True)
@@ -242,7 +238,16 @@ Represents the Crop tool in the image editor.
 - `finished`: False - Indicates if the tool's implementation is complete.
 '''
 
-ie_tool_circle_outline= ie_tool ("Circle Outline",1023,"C","Circle Outline Tool",False)
+ie_tool_circle_outline= ie_tool ("Circle Outline", "svgicons/circle-outline-gray.svg",1023,"C","Circle Outline Tool",False)
+'''
+Represents the Circle Outline tool in the image editor.
+- `name`: "Circle Outline" - Display name of the tool.
+- `icon`: "svgicons/circle-outline-gray.svg" - Path to the tool's SVG icon.
+- `tool_id`: 1023 - Unique identifier for the tool.
+- `shortcut`: "C" - Keyboard shortcut for activating the tool.
+- `description`: "Circle Outline Tool" - A brief description of the tool's function.
+- `finished`: False - Indicates if the tool's implementation is complete.
+'''
 
 tools = [
     ie_tool_pen,
@@ -329,13 +334,15 @@ filenamecounter = 1
 
 fill_tolerance:float = 1.0
 
-max_undo_steps = 20
+max_undo_steps = 200
 
 # Selection globals
 current_selection: set = set()
 selection_bounds: PySide6.QtCore.QRect = PySide6.QtCore.QRect()
 selection_edge_pixels: set = set()
 has_selection: bool = False
+selection_region: QRegion | None = None
+selection_type: str | None = None # 'rect', 'circle', 'wand'
 selection_colors = [
     QColor(0, 100, 255, 220), QColor(255, 100, 0, 220),
     QColor(0, 200, 100, 220), QColor(200, 0, 255, 220)
@@ -356,12 +363,15 @@ class StatusText:
 statusText = StatusText("Tool:", "Pos:", "Zoom:")
 
 class Layer:
-    def __init__(self, name:str, visible:bool=True, opacity:int=100, image:PySide6.QtGui.QImage= QImage(image_width, image_height, PySide6.QtGui.QImage.Format.Format_RGBA64), rasterized:bool=True,locked:bool=False):
+    def __init__(self, name:str, visible:bool=True, opacity:int=100, image:PySide6.QtGui.QImage=None, rasterized:bool=True,locked:bool=False):
         self.name = name
         self.active=False
         self.visible = visible
         self.opacity = opacity
-        self.image = image
+        if image is None:
+            self.image = QImage(image_width, image_height, PySide6.QtGui.QImage.Format.Format_RGBA64)
+        else:
+            self.image = image
         self.rasterized = rasterized
         self.locked = locked
         self.id=0
@@ -372,6 +382,7 @@ shear_horizontal = True
 shear_direction = 1
 melt_amount = 30
 blur_radius = 3
+gaussian_blur_radius = 2
 mosaic_block_size = 10
 
 # Brush settings
@@ -408,28 +419,52 @@ def save_settings():
     settings.setValue("shear_direction", shear_direction)
     settings.setValue("melt_amount", melt_amount)
     settings.setValue("blur_radius", blur_radius)
+    settings.setValue("gaussian_blur_radius", gaussian_blur_radius)
     settings.setValue("mosaic_block_size", mosaic_block_size)
 
+def _to_int(value, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+def _to_float(value, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+def _to_bool(value, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    s = str(value).strip().lower()
+    if s in {"1", "true", "yes", "on"}:
+        return True
+    if s in {"0", "false", "no", "off"}:
+        return False
+    return default
+
 def load_settings():
-    global brush_size, brush_hardness, brush_density, brush_shape, brush_mode, brush_dynamic_angle, brush_star_points, brush_cylinder_ratio, pen_blur, spray_radius, spray_density, fill_tolerance, round_rect_corner_radius, shear_amount, shear_horizontal, shear_direction, melt_amount, blur_radius, mosaic_block_size
+    global brush_size, brush_hardness, brush_density, brush_shape, brush_mode, brush_dynamic_angle, brush_star_points, brush_cylinder_ratio, pen_blur, spray_radius, spray_density, fill_tolerance, round_rect_corner_radius, shear_amount, shear_horizontal, shear_direction, melt_amount, blur_radius, gaussian_blur_radius, mosaic_block_size
     settings = QSettings("ie_settings.ini", QSettings.Format.IniFormat)
-    brush_size = int(settings.value("brush_size", 30))
-    brush_hardness = int(settings.value("brush_hardness", 80))
-    brush_density = int(settings.value("brush_density", 100))
+    brush_size = _to_int(settings.value("brush_size", 30), 30)
+    brush_hardness = _to_int(settings.value("brush_hardness", 80), 80)
+    brush_density = _to_int(settings.value("brush_density", 100), 100)
     brush_shape = settings.value("brush_shape", "circle")
     brush_mode = settings.value("brush_mode", "solid")
-    brush_dynamic_angle = bool(settings.value("brush_dynamic_angle", False))
-    brush_star_points = int(settings.value("brush_star_points", 5))
-    brush_cylinder_ratio = float(settings.value("brush_cylinder_ratio", 0.5))
-    pen_blur = int(settings.value("pen_blur", 1))
-    spray_radius = int(settings.value("spray_radius", 50))
-    spray_density = int(settings.value("spray_density", 100))
-    fill_tolerance = float(settings.value("fill_tolerance", 1.0))
-    round_rect_corner_radius = int(settings.value("round_rect_corner_radius", 10))
-    shear_amount = int(settings.value("shear_amount", 40))
-    shear_horizontal = bool(settings.value("shear_horizontal", True))
-    shear_direction = int(settings.value("shear_direction", 1))
-    melt_amount = int(settings.value("melt_amount", 30))
-    blur_radius = int(settings.value("blur_radius", 3))
-    mosaic_block_size = int(settings.value("mosaic_block_size", 10))
+    brush_dynamic_angle = _to_bool(settings.value("brush_dynamic_angle", False), False)
+    brush_star_points = _to_int(settings.value("brush_star_points", 5), 5)
+    brush_cylinder_ratio = _to_float(settings.value("brush_cylinder_ratio", 0.5), 0.5)
+    pen_blur = _to_int(settings.value("pen_blur", 1), 1)
+    spray_radius = _to_int(settings.value("spray_radius", 50), 50)
+    spray_density = _to_int(settings.value("spray_density", 100), 100)
+    fill_tolerance = _to_float(settings.value("fill_tolerance", 1.0), 1.0)
+    round_rect_corner_radius = _to_int(settings.value("round_rect_corner_radius", 10), 10)
+    shear_amount = _to_int(settings.value("shear_amount", 40), 40)
+    shear_horizontal = _to_bool(settings.value("shear_horizontal", True), True)
+    shear_direction = _to_int(settings.value("shear_direction", 1), 1)
+    melt_amount = _to_int(settings.value("melt_amount", 30), 30)
+    blur_radius = _to_int(settings.value("blur_radius", 3), 3)
+    gaussian_blur_radius = _to_int(settings.value("gaussian_blur_radius", 2), 2)
+    mosaic_block_size = _to_int(settings.value("mosaic_block_size", 10), 10)
     current_pen.setWidth(brush_size)

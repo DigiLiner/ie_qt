@@ -10,10 +10,17 @@ Onefile klasörü her çalışmada değişiyor. Sonra siliniyor.
 simgeler qrc dosyasında olursa eklemeye gerek kalmıyor.
 C:\Users\dx\AppData\Local\Temp\_MEI236602
 pyinstaller    main.py    --exclude PyQt6 --onefile --windowed
-pyinstaller   --name hcie2.9.1-alpha main.py    --exclude PyQt6 --onefile --windowed --icon=icon.ico
+pyinstaller   --name hcie2.9.1-alpha main.py    --exclude PyQt6 --exclude-module PySide6.QtNetwork  --onefile --windowed --icon=icon.ico
 2025-11
+linuxta problem çıkınca bunu ekledim. :  --exclude-module PySide6.QtNetwork
+pyinstaller --name hcie2.9.2-alpha main.py --add-data "resources:resources" --windowed  --exclude PyQt6 --exclude-module PySide6.QtNetwork --onefile --icon=icon.ico
+LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH pyinstaller --name hcie2.9.2-alpha main.py --add-data "resources:resources" --windowed  --exclude PyQt6 --onefile --icon=icon.ico
 
-pyinstaller --name hcie2.9.1-alpha main.py --add-data "resources:resources" .\main.py  --windowed  --exclude PyQt6 --onefile --icon=icon.ico
+
+pyinstaller --name hcie2.9.2-alpha main.py --add-data "resources:resources" --add-data  "svgicons:svgicons" --add-data "svgicons.qrc:svgicons.qrc" --windowed  --exclude PyQt6 --exclude-module PySide6.QtNetwork --onefile --icon=icon.ico
+WINDOWS İÇİN EXE İMZALAMA
+"C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /f c:\cert\certificate.pfx /p gutenberg /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 .\hcie2.9.2-alpha.exe
+
 
 
 PYQT5 UI

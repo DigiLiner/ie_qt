@@ -1,25 +1,25 @@
-import math
 import os
-import platform
 import sys
+
 from logging import exception
 import PySide6
 from PySide6.QtCore import Qt
 from PySide6 import QtWidgets, QtCore
-from PySide6.QtCore import QPoint, QSize, QRect
-from PySide6.QtGui import QPen, QColor, QBrush, QImage, QPainter, QMouseEvent, QPixmap,QIcon
+from PySide6.QtCore import QRect
+from PySide6.QtGui import QPen, QColor, QBrush, QImage, QPainter, QMouseEvent, QIcon
 import PySide6.QtGui
-from PySide6.QtWidgets import (QWidget,QApplication, QMainWindow, QGraphicsScene, QSizePolicy, QLabel, QHBoxLayout,
-                               QDialog, QVBoxLayout, QGroupBox, QRadioButton, QSlider, QSpinBox, QDialogButtonBox, QCheckBox, QFileDialog)
+from PySide6.QtWidgets import (QWidget,QApplication, QMainWindow, QGraphicsScene, QLabel, QHBoxLayout,
+                               QDialog, QVBoxLayout, QGroupBox, QRadioButton, QSlider, QSpinBox, QDialogButtonBox, QCheckBox, QFileDialog, QInputDialog)
 from typing import Type, cast
 
-import ie_globals,ie_editor
+import ie_globals,ie_editor,yedekle
 from main_ui import Ui_MainWindow
 from float_window_ui import Ui_floatWindow as float_window_ui
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
+        yedekle.yedekle()
         QMainWindow.__init__(self)
         self.colorHeight = None
         self.colorWidth = None
@@ -33,11 +33,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.tabWidget.removeTab(0)
         import ie_editor
-        EditorType = cast(Type[QWidget], ie_editor.Editor)
-        doc: Type[QWidget] = EditorType
-        self.tabWidget.addTab(EditorType(QWidget()), "Picture" + str(ie_globals.filenamecounter))
+        self.tabWidget.addTab(ie_editor.Editor(), "Picture" + str(ie_globals.filenamecounter))
         self.tabWidget.setCurrentIndex(self.tabWidget.count() - 1)
         ie_globals.filenamecounter += 1
+        self.tabifyDockWidget(self.dwTools, self.dwFilters)
+
+        # Başlangıçta hangi dock görünsün?
+        self.dwTools.raise_()
+
+
 
         self.actionOpen.triggered.connect(self.open_file)
         self.actionSave.triggered.connect(self.save_file)
@@ -45,10 +49,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
         self.dwColorBox.dockLocationChanged.connect(self.colorBox)
-        self.actionBlur_2.triggered.connect(self.filter_blur)
+
+        self.actionGenerateImage = PySide6.QtGui.QAction("Generate Image...")
+        self.menuFile.addAction(self.actionGenerateImage)
+        self.actionGenerateImage.triggered.connect(self.generate_image)
+
+        self.actionRemoveObject = PySide6.QtGui.QAction("Remove Object (AI)...")
+        self.menuFile.addAction(self.actionRemoveObject)
+        self.actionRemoveObject.triggered.connect(self.remove_object)
+
+        self.actionBlur.triggered.connect(self.filter_blur)
+        self.toolButton_blur.clicked.connect(self.filter_blur)
+
+    
         self.actionMelt.triggered.connect(self.filter_melt)
+        self.toolButton_melt.clicked.connect(self.filter_melt)
+
         self.actionMosaic.triggered.connect(self.filter_mosaic)
+        self.toolButton_mosaic.clicked.connect(self.filter_mosaic)
+
         self.actionShear.triggered.connect(self.filter_shear)
+        self.toolButton_shear.clicked.connect(self.filter_shear)
+        
+        self.actionSepia.triggered.connect(self.filter_sepia)
+        self.toolButton_sepia.clicked.connect(self.filter_sepia)
+
+        self.actionGaussianBlur = PySide6.QtGui.QAction("Gaussian Blur")
+        self.menuBlur.addAction(self.actionGaussianBlur)
+        self.actionGaussianBlur.triggered.connect(self.filter_gaussian_blur)
 
         self.closeEvent = self.close_event
 
@@ -92,6 +120,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.timer_update)
         self.timer.start(200)
+
+    def generate_image(self):
+        prompt, ok = QInputDialog.getText(self, "Generate Image from Prompt", "Enter a prompt:")
+        if ok and prompt:
+            import ie_editor
+            doc = ie_editor.Editor()
+            self.tabWidget.addTab(doc, "Generated - " + prompt[:20])
+            self.tabWidget.setCurrentWidget(doc)
+            doc.generate_image_from_prompt(prompt)
+
+    def remove_object(self):
+        import ie_editor
+        activeDoc = self.tabWidget.currentWidget()
+        if isinstance(activeDoc, ie_editor.Editor):
+            activeDoc.remove_object_with_ai()
 
     def add_brush_controls(self):
         # Brush Dialog Button
@@ -267,6 +310,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             ctool=ie_globals.ie_tool_rounded_rect
         elif tool_button.objectName() == "toolButtonSelectRectangle":
             ctool=ie_globals.ie_tool_select_rect
+        elif tool_button.objectName() == "toolButtonSelectCircle":
+            ctool=ie_globals.ie_tool_select_circle
         elif tool_button.objectName() == "toolButtonCircle":
             ctool=ie_globals.ie_tool_circle
         elif tool_button.objectName() == "toolButtonCircleOutline":
@@ -306,7 +351,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if isinstance(self.tabWidget.currentWidget(), ie_editor.Editor):
                 activeDoc = cast(ie_editor.Editor, self.tabWidget.currentWidget())
                 activeDoc.is_checkerboard_enabled = not activeDoc.is_checkerboard_enabled
-                if activeDoc.is_checkerboard_enabled==True:
+                if activeDoc.is_checkerboard_enabled:
                     activeDoc.widgetPicture1.setStyleSheet("background-image:url(:/png/resources/images/checker20.png);")
                 else:
                     activeDoc.widgetPicture1.setStyleSheet("")
@@ -352,7 +397,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             try:
                 main_geometry = self.geometry()
-                if float_window.enabled==True:
+                if float_window.enabled:
                     float_geometry = float_window.geometry()
                     float_geometry.setLeft(main_geometry.right() - float_geometry.width() - 150)
                     float_geometry.setTop(main_geometry.top())
@@ -408,6 +453,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         tempcolor:QColor=ie_globals.current_pen.color()
         tempcolor.setAlphaF(alpha)
         ie_globals.current_pen.setColor( tempcolor)
+        ie_globals.current_brush.setColor( tempcolor)
         self.repaint()
     def on_slider_change_tolerance(self, value):
         if self.disable_slider_events: return
@@ -476,7 +522,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         filename, _ = QFileDialog.getOpenFileName(self, "Open File", ".", "Image Files (*.png *.jpg *.jpeg *.gif)")
         if filename:
             import ie_editor
-            doc = ie_editor.Editor("Picture" + str(ie_globals.filenamecounter))
+            doc = ie_editor.Editor()
             self.tabWidget.addTab(doc, "Picture" + str(ie_globals.filenamecounter))
             ie_globals.filenamecounter += 1
             doc.picOrg = PySide6.QtGui.QImage(filename)
@@ -494,20 +540,42 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dialog = dialog_newImage_ui.Ui_Dialog()
         dialog_instance = QtWidgets.QDialog()
         dialog.setupUi(dialog_instance)
-        dialog.comboBoxSizeList.addItems(["100x100", "500x500", "800x600","1024x768","1280x1024","1600x1200","1920,1080","2048x1536"])
-        dialog.comboBoxSizeList.setCurrentIndex(3)
-        dialog.plainTextEditWidth.setPlainText("500")
-        dialog.plainTextEditHeight.setPlainText("500")
-        dialog_instance.exec()
+        
+        # Önceden tanımlanmış boyutları ve varsayılan seçimi ayarla
+        sizes = ["100x100", "500x500", "800x600", "1024x768", "1280x1024", "1600x1200", "1920x1080", "2048x1536"]
+        dialog.comboBoxSizeList.addItems(sizes)
+        dialog.comboBoxSizeList.setCurrentIndex(3) # 1024x768'i varsayılan yap
 
-        import ie_editor
-        EditorType = cast(Type[QWidget], ie_editor.Editor)
-        doc = ie_editor.Editor("Picture" + str(ie_globals.filenamecounter))
-        if isinstance(self.tabWidget.currentWidget(), ie_editor.Editor):
-            activeDoc = cast(ie_editor.Editor, self.tabWidget.currentWidget())
+        # ComboBox değiştiğinde metin kutularını güncelleyen bir fonksiyon
+        def update_text_fields(selected_text):
+            try:
+                w_str, h_str = selected_text.replace(',', 'x').split('x')
+                dialog.plainTextEditWidth.setPlainText(w_str)
+                dialog.plainTextEditHeight.setPlainText(h_str)
+            except ValueError:
+                pass # Hatalı formatı yoksay
+
+        # ComboBox sinyalini fonksiyona bağla
+        dialog.comboBoxSizeList.currentTextChanged.connect(update_text_fields)
+        
+        # Başlangıçta metin kutularını varsayılan değere göre doldur
+        update_text_fields(dialog.comboBoxSizeList.currentText())
+
+        if dialog_instance.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            try:
+                w = int(dialog.plainTextEditWidth.toPlainText())
+                h = int(dialog.plainTextEditHeight.toPlainText())
+            except (ValueError, TypeError):
+                # Geçersiz giriş durumunda varsayılan değerler
+                w = 1024
+                h = 768
+
+            import ie_editor
+            doc = ie_editor.Editor(width=w, height=h)
             self.tabWidget.addTab(doc, "Picture" + str(ie_globals.filenamecounter))
             ie_globals.filenamecounter += 1
             self.tabWidget.setCurrentIndex(self.tabWidget.count()-1)
+
     def undo(self):
         import ie_editor
         if isinstance(self.tabWidget.currentWidget(), ie_editor.Editor):
@@ -553,6 +621,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             ie_globals.blur_radius = val
             activeDoc.apply_blur_filter()
 
+    def filter_gaussian_blur(self):
+        activeDoc = self.tabWidget.currentWidget()
+        if not isinstance(activeDoc, ie_editor.Editor): return
+        val = self._create_slider_dialog("Gaussian Blur Filter", "Radius", 1, 100, ie_globals.gaussian_blur_radius)
+        if val is not None:
+            ie_globals.gaussian_blur_radius = val
+            activeDoc.apply_gaussian_blur_filter()
+
     def filter_melt(self):
         activeDoc = self.tabWidget.currentWidget()
         if not isinstance(activeDoc, ie_editor.Editor): return
@@ -568,6 +644,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if val is not None:
             ie_globals.mosaic_block_size = val
             activeDoc.apply_mosaic_filter()
+
+    def filter_sepia(self):
+        activeDoc = self.tabWidget.currentWidget()
+        if not isinstance(activeDoc, ie_editor.Editor): return
+        activeDoc.apply_sepia_filter()
 
     def filter_shear(self):
         import ie_editor
@@ -661,9 +742,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def colorbox_on_click(self, event:QMouseEvent):
         img= self.widgetColors.grab()
         color= img.toImage().pixel(event.pos())
-        ie_globals.current_pen.setColor(color)
-        ie_globals.current_brush.setColor(color)
-        ie_globals.brush_color = color
+        ie_globals.previous_tool = ie_globals.current_tool        
+        previous_alpha = ie_globals.current_pen.color().alpha()
+        qcolor= QColor(color)
+        qcolor.setAlpha(previous_alpha)
+        ie_globals.current_pen.setColor(qcolor)
+        ie_globals.current_brush.setColor(qcolor)     
+        ie_globals.current_tool = ie_globals.previous_tool
 
     def paintEvent(self, event):
         ie_globals.statusText.tool= "Tool: "+ str(ie_globals.current_tool.name)
@@ -684,31 +769,53 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super(MainWindow, self).closeEvent(event)
 
     def setSvgColors(self):
+        # şimdilik simgeler sabit renkli tema olarak ayarlandı. 
+        # svgicons.qrc dosyası gui tasarlayıcısında ayarlanıyor.
+        #  
+        return
         if app.palette().color(PySide6.QtGui.QPalette.ColorRole.Window).value() > QColor("#808080").value():
-            themename="ie_light"
-            themefolder="lightsvg"
+            themename="ie_light"    
         else:
             themename="ie_dark"
-            themefolder="darksvg"
         for obj in self.dwTools.children():
             if isinstance(obj, QtWidgets.QToolButton):
                 icon = QIcon()
                 iconname= obj.objectName().replace("toolButton","").lower()
-                icon.addFile((u":/"+themefolder+"/resources/themes/"+themename+"/" +iconname+".svg"), QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+                icon_relative_path = os.path.join("resources", "themes", themename, f"{iconname}.svg")
+                icon_absolute_path = self.resource_path(icon_relative_path)
+                icon.addFile(icon_absolute_path, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+                
+                #icon.addFile((u"./resources/themes/"+themename+"/" +iconname+".svg"), QSize(), QIcon.Mode.Normal, QIcon.State.Off)
                 obj.setIcon(icon)
             for obj1 in obj.children():
                 if isinstance(obj1, QtWidgets.QToolButton):
                     icon = QIcon()
                     iconname= obj1.objectName().replace("toolButton","").lower()
-                    icon.addFile((u":/"+themefolder+"/resources/themes/"+themename+"/" +iconname+".svg"), QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+                    icon_relative_path = os.path.join("resources", "themes", themename, f"{iconname}.svg")
+                    icon_absolute_path = self.resource_path(icon_relative_path)
+                    icon.addFile(icon_absolute_path, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+
+                    #icon.addFile((u"./resources/themes/"+themename+"/" +iconname+".svg"), QSize(), QIcon.Mode.Normal, QIcon.State.Off)
                     obj1.setIcon(icon)
                 for obj2 in obj1.children():
                     if isinstance(obj2, QtWidgets.QToolButton):
                         icon = QIcon()
                         iconname= obj2.objectName().replace("toolButton","").lower()
-                        icon.addFile(u":/"+themefolder+"/resources/themes/"+themename+"/" +iconname+".svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+                        icon_relative_path = os.path.join("resources", "themes", themename, f"{iconname}.svg")
+                        icon_absolute_path = self.resource_path(icon_relative_path)
+                        icon.addFile(icon_absolute_path, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+                        #icon.addFile(u"./resources/themes/"+themename+"/" +iconname+".svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
                         obj2.setIcon(icon)
-
+        
+        for obj in self.menuBar().children():
+            if isinstance(obj, QtWidgets.QMenu):
+                icon = QIcon()
+                iconname= obj.objectName().replace("menu","").lower()
+                icon_relative_path = os.path.join("resources", "themes", themename, f"{iconname}.svg")
+                icon_absolute_path = self.resource_path(icon_relative_path)
+                icon.addFile(icon_absolute_path, QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+                #icon.addFile(u"./resources/themes/"+themename+"/" +iconname+".svg", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+                obj.setIcon(icon)
 class FloatWindow(QtWidgets.QMainWindow,float_window_ui):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -735,9 +842,9 @@ if __name__ == "__main__":
     app.setApplicationName("HC Image Editor")
     app.setOrganizationName("HC")
     app.setApplicationDisplayName("HC Image Editor")
-    app.setApplicationVersion("2.9.2")
+    app.setApplicationVersion("2.9.3")
     app.setAttribute(Qt.ApplicationAttribute.AA_Use96Dpi)
-    app.setStyle("Breeze")
+    app.setStyle("macOS") #"Fusion" "WindowsVista" "Breeze"  "Windows" "macOS"
     window = MainWindow()
     app.paletteChanged.connect(window.setSvgColors)
     window.show()

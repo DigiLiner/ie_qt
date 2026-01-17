@@ -1,0 +1,21 @@
+pyinstaller --add-data "toolbar_images:toolbar_images"  mainwx.py  --windowed
+pyinstaller --add-data "toolbar_images:toolbar_images"  mainwx.py  --windowed  --onefile
+pyinstaller --add-data "svgicons:svgicons" --add-data "pngicons:pngicons"  mainqt.py  --windowed  --exclude PyQt6 --onefile
+pyinstaller --add-data "svgicons:svgicons" --add-data "pngicons:pngicons" --add-data "textures:textures"  main.py  --windowed  --exclude PyQt6 --onefile
+
+folder olarak eklemek için: dosyalar _internal klasörüne taşınır ve --add-data "_internal:." parametresi ile eklenir. (dandik)
+pyinstaller --add-data "_internal:."   main.py    --exclude PyQt6
+
+Onefile klasörü her çalışmada değişiyor. Sonra siliniyor.
+simgeler qrc dosyasında olursa eklemeye gerek kalmıyor.
+C:\Users\dx\AppData\Local\Temp\_MEI236602
+pyinstaller    main.py    --exclude PyQt6 --onefile --windowed
+pyinstaller   --name hcie2.9.1-alpha main.py    --exclude PyQt6 --onefile --windowed --icon=icon.ico
+2025-11
+
+pyinstaller --name hcie2.9.2-alpha main.py --add-data "resources:resources" --windowed  --exclude PyQt6 --onefile --icon=icon.ico
+
+
+PYQT5 UI
+sudo apt install pyqt6-dev-tools
+pyuic6 main.ui -o main_ui.py

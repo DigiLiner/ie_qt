@@ -4,24 +4,7 @@ from PySide6.QtGui import QImage
 from PIL import Image, ImageFilter
 import numpy as np
 
-# Helper functions for conversion to avoid repetition
-def _qimage_to_pil(img: QImage) -> Image.Image:
-    """Converts a QImage to a PIL Image."""
-    # Ensure the QImage is in a format that Pillow can easily handle.
-    if img.format() != QImage.Format.Format_ARGB32:
-        img = img.convertToFormat(QImage.Format.Format_ARGB32)
-    
-    buffer = img.bits().tobytes() # type: ignore
-    pil_img = Image.frombytes("RGBA", (img.width(), img.height()), buffer, "raw", "BGRA")
-    return pil_img
-
-def _pil_to_qimage(pil_img: Image.Image) -> QImage:
-    """Converts a PIL Image to a QImage."""
-    w, h = pil_img.size
-    # Ensure the PIL image is in RGBA format for consistency
-    data = pil_img.convert("RGBA").tobytes()
-    q_img = QImage(data, w, h, QImage.Format.Format_RGBA8888)
-    return q_img.copy()
+from ie_utils import _qimage_to_pil, _pil_to_qimage
 
 
 def melt_image(img: QImage, amount: int = 30) -> QImage:
@@ -67,6 +50,15 @@ def blur_image(img: QImage, radius: int = 3) -> QImage:
         return img.copy()
     pil_img = _qimage_to_pil(img)
     pil_blurred = pil_img.filter(ImageFilter.BoxBlur(radius))
+    return _pil_to_qimage(pil_blurred)
+
+
+def gaussian_blur_image(img: QImage, radius: int = 2) -> QImage:
+    """Applies a Gaussian blur to the image using Pillow."""
+    if radius <= 0:
+        return img.copy()
+    pil_img = _qimage_to_pil(img)
+    pil_blurred = pil_img.filter(ImageFilter.GaussianBlur(radius))
     return _pil_to_qimage(pil_blurred)
 
 
